@@ -1,487 +1,2491 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>角色对话统计工具</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root[data-theme="light"] {
+            --bg:        #fafafa;
+            --surface:   #ffffff;
+            --surface-2: #f5f5f5;
+            --surface-3: #ededed;
+            --border:    #e5e5e5;
+            --border-2:  #d4d4d4;
+            --text:      #171717;
+            --text-2:    #525252;
+            --text-3:    #a3a3a3;
+            --primary:   #2563eb;
+            --primary-2: #1d4ed8;
+            --accent:    #0891b2;
+            --success:   #16a34a;
+            --warning:   #d97706;
+            --danger:    #dc2626;
+            --ooc-bg:    #fef9c3;
+            --ooc-border:#eab308;
+            --shadow:    0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
         }
+
+        :root[data-theme="dark"] {
+            --bg:        #0a0a0a;
+            --surface:   #171717;
+            --surface-2: #1f1f1f;
+            --surface-3: #262626;
+            --border:    #262626;
+            --border-2:  #404040;
+            --text:      #f5f5f5;
+            --text-2:    #a3a3a3;
+            --text-3:    #737373;
+            --primary:   #3b82f6;
+            --primary-2: #60a5fa;
+            --accent:    #06b6d4;
+            --success:   #22c55e;
+            --warning:   #f59e0b;
+            --danger:    #ef4444;
+            --ooc-bg:    #292014;
+            --ooc-border:#a16207;
+            --shadow:    0 1px 2px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            line-height: 1.55;
+            font-feature-settings: "cv11" 1, "ss01" 1, "tnum" 0;
+            transition: background 0.2s, color 0.2s;
         }
 
-        .container {
-            max-width: 1200px;
+        .app {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 0 24px;
         }
 
+        /* ============== Header ============== */
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .upload-section {
-            background: white;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 10px;
-            padding: 60px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9ff;
-        }
-
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
-
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8ebff;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.2em;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .upload-hint {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
-            color: #667eea;
-        }
-
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .results-section {
-            display: none;
-        }
-
-        .result-header {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             display: flex;
+            align-items: center;
             justify-content: space-between;
+            height: 56px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .brand-mark {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .brand-version {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-3);
+            padding: 2px 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
             align-items: center;
         }
 
-        .result-title {
-            color: #667eea;
-            font-size: 1.5em;
-            font-weight: bold;
-        }
-
-        .download-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1em;
+        .icon-btn {
+            width: 32px; height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-2);
             cursor: pointer;
-            transition: transform 0.2s ease;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+        }
+        .icon-btn:hover {
+            background: var(--surface-3);
+            color: var(--text);
+            border-color: var(--border-2);
         }
 
-        .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        /* ============== Page ============== */
+        .page {
+            padding: 32px 0 48px;
         }
 
-        .stats-container {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
         }
 
-        .day-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
+        .page-desc {
+            color: var(--text-2);
+            font-size: 0.92rem;
+            margin-bottom: 24px;
+        }
+
+        /* ============== Upload ============== */
+        .upload-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-            font-weight: bold;
+            padding: 24px;
+            box-shadow: var(--shadow);
         }
 
-        .stats-table {
+        .upload-zone {
+            border: 1.5px dashed var(--border-2);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: var(--surface-2);
+        }
+        .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.04);
+            border-style: solid;
+        }
+
+        .upload-icon {
+            width: 44px; height: 44px;
+            margin: 0 auto 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--surface-3);
+            border-radius: 8px;
+            color: var(--primary);
+        }
+
+        .upload-line1 {
+            font-size: 0.95rem;
+            color: var(--text);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .upload-line2 {
+            font-size: 0.82rem;
+            color: var(--text-3);
+        }
+
+        .upload-formats {
+            margin-top: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .format-chip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-2);
+            padding: 3px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--surface);
+        }
+
+        #fileInput { display: none; }
+
+        /* ============== Loading ============== */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 80px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .spinner {
+            width: 32px; height: 32px;
+            border: 2.5px solid var(--surface-3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 0.92rem;
+            color: var(--text-2);
+        }
+
+        /* ============== Results ============== */
+        .results { display: none; }
+        .results.show { display: block; }
+
+        .result-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+        }
+
+        .result-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .file-icon {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            background: var(--surface-3);
+            color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 380px;
+        }
+
+        .file-meta {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .btn:hover {
+            background: var(--surface-3);
+            border-color: var(--border-2);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background: var(--primary-2);
+            border-color: var(--primary-2);
+        }
+        .btn-ghost {
+            border-color: transparent;
+            background: transparent;
+            color: var(--text-2);
+        }
+        .btn-ghost:hover {
+            background: var(--surface-3);
+            color: var(--text);
+        }
+
+        /* ============== Overview ============== */
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            transition: all 0.15s;
+        }
+        .stat-card:hover {
+            border-color: var(--border-2);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            font-feature-settings: "tnum" 1;
+            line-height: 1.1;
+        }
+        .stat-value .unit {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-3);
+            margin-left: 2px;
+        }
+
+        /* ============== Tabs ============== */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            padding: 10px 14px;
+            color: var(--text-2);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-3);
+            background: var(--surface-3);
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+        .tab.active .tab-count {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ============== Table ============== */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .panel-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .day-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--surface-3);
+            color: var(--text-2);
+        }
+        .day-tag.total {
+            background: var(--primary);
+            color: white;
+        }
+
+        .panel-meta {
+            font-size: 0.78rem;
+            color: var(--text-3);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table.tbl {
             width: 100%;
             border-collapse: collapse;
-            overflow: hidden;
-            border-radius: 10px;
+            font-size: 0.88rem;
         }
 
-        .stats-table thead {
-            background: #f8f9ff;
-        }
-
-        .stats-table th {
-            padding: 15px;
+        .tbl thead th {
+            background: var(--surface-2);
+            padding: 10px 14px;
             text-align: left;
-            font-weight: 600;
-            color: #667eea;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .stats-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stats-table tbody tr:hover {
-            background: #f8f9ff;
-        }
-
-        .stats-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .reset-btn {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 1em;
+            font-weight: 500;
+            font-size: 0.75rem;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: block;
-            margin: 20px auto;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .tbl thead th:hover { color: var(--text); }
+        .tbl thead th.sort-asc::after { content: ' ↑'; color: var(--primary); }
+        .tbl thead th.sort-desc::after { content: ' ↓'; color: var(--primary); }
+
+        .tbl td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            vertical-align: middle;
+        }
+        .tbl tbody tr:hover { background: var(--surface-2); }
+        .tbl tbody tr:last-child td { border-bottom: none; }
+
+        .tbl td.num {
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum" 1;
+            font-size: 0.85rem;
+            color: var(--text-2);
         }
 
-        .reset-btn:hover {
-            background: #667eea;
-            color: white;
+        .speaker-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            min-width: 0;
         }
 
-        .error-message {
-            background: #ff4757;
+        .avatar {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
             color: white;
-            padding: 15px 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .bar-cell { min-width: 120px; max-width: 200px; }
+        .bar-track {
+            height: 4px;
+            background: var(--surface-3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        /* ============== Charts ============== */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 18px;
+        }
+
+        .chart-card h4 {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .chart-sub {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            margin-bottom: 14px;
+        }
+
+        .chart-canvas-wrap {
+            position: relative;
+            height: 280px;
+        }
+
+        @media (max-width: 900px) {
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ============== Dialogue ============== */
+        .dialogue-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 12px;
+            min-height: 540px;
+        }
+
+        .roster {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            max-height: 700px;
+        }
+
+        .roster-head {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .roster-search {
+            width: 100%;
+            padding: 7px 10px 7px 30px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.85rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 9px center;
+        }
+        .roster-search:focus { outline: none; border-color: var(--primary); }
+
+        .roster-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px;
+        }
+
+        .roster-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.1s;
+            margin-bottom: 2px;
+        }
+        .roster-item:hover { background: var(--surface-2); }
+        .roster-item.active {
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary);
+        }
+
+        .roster-name {
+            flex: 1;
+            font-size: 0.88rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .roster-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-3);
+            font-weight: 500;
+        }
+
+        .scriptbody {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .script-toolbar {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .filter-chip {
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border: none;
+            background: var(--surface);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.15s;
+            border-right: 1px solid var(--border);
+        }
+        .filter-chip:last-child { border-right: none; }
+        .filter-chip:hover { background: var(--surface-2); }
+        .filter-chip.active {
+            background: var(--text);
+            color: var(--surface);
+        }
+
+        .script-search {
+            flex: 1;
+            min-width: 160px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .script-search:focus { outline: none; border-color: var(--primary); }
+
+        .script-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-3);
+            font-size: 0.92rem;
+        }
+
+        .script-meta {
+            font-size: 0.78rem;
+            color: var(--text-3);
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .speech {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: var(--surface-2);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+        .speech.ooc {
+            background: var(--ooc-bg);
+            border-left-color: var(--ooc-border);
+        }
+
+        .speech-cue {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .ooc-tag {
+            font-family: inherit;
+            font-size: 0.7rem;
+            color: var(--warning);
+            font-weight: 600;
+            padding: 1px 6px;
+            border: 1px solid var(--ooc-border);
+            border-radius: 3px;
+        }
+
+        .speech-body {
+            font-size: 0.92rem;
+            line-height: 1.7;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        @media (max-width: 800px) {
+            .dialogue-layout { grid-template-columns: 1fr; }
+            .roster { max-height: 240px; }
+        }
+
+        /* ============== Insights ============== */
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .keyword-tag {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 4px;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            transition: all 0.15s;
+        }
+        .keyword-tag:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .keyword-tag .count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-3);
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .folio {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .folio-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .folio-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .folio-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-3);
+        }
+
+        .folio-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .folio-stat {
+            background: var(--surface-2);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .folio-stat .label {
+            font-size: 0.7rem;
+            color: var(--text-3);
+            margin-bottom: 2px;
+        }
+        .folio-stat .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            font-feature-settings: "tnum" 1;
+        }
+
+        .folio-section {
+            margin-bottom: 12px;
+        }
+        .folio-section-label {
+            font-size: 0.72rem;
+            color: var(--text-3);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .folio-quote {
+            background: var(--surface-2);
+            padding: 10px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: var(--text-2);
+            white-space: pre-wrap;
+            max-height: 130px;
+            overflow-y: auto;
+        }
+
+        /* ============== AI Review ============== */
+        .ai-config-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.82rem;
+        }
+        .ai-config-bar .label {
+            color: var(--text-3);
+            font-size: 0.78rem;
+        }
+        .ai-config-bar .value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .ai-config-bar .badge-ok {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success);
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .ai-config-bar .badge-warn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning);
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
             display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .modal-bg.show { display: flex; }
+        .modal {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .modal .modal-desc {
+            color: var(--text-2);
+            font-size: 0.85rem;
+            margin-bottom: 18px;
+            flex-shrink: 0;
+        }
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            margin-right: -8px;
+            padding-right: 8px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            background: var(--surface);
+            position: sticky;
+            bottom: 0;
+        }
+        .modal-field {
+            margin-bottom: 12px;
+        }
+        .modal-field label {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--text-2);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .modal-field input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .modal-field input:focus { outline: none; border-color: var(--primary); }
+        .modal-field .hint {
+            font-size: 0.72rem;
+            color: var(--text-3);
+            margin-top: 4px;
         }
 
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .upload-section {
-                padding: 20px;
-            }
-
-            .stats-table {
-                font-size: 0.9em;
-            }
-
-            .stats-table th,
-            .stats-table td {
-                padding: 8px;
-            }
-
-            .result-header {
-                flex-direction: column;
-                gap: 15px;
-            }
+        /* AI score cards in folio */
+        .ai-actions {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
         }
+        .btn-ai {
+            font-family: inherit;
+            font-size: 0.78rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-ai:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-ai:disabled { opacity: 0.6; cursor: wait; }
+
+        .ai-result {
+            background: linear-gradient(135deg, rgba(37,99,235,0.04), rgba(8,145,178,0.04));
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .ai-scores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .ai-score {
+            text-align: center;
+            padding: 10px 8px;
+            background: var(--surface);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .ai-score .ai-label {
+            font-size: 0.72rem;
+            color: var(--text-3);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .ai-score .ai-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+            font-feature-settings: "tnum" 1;
+        }
+        .ai-score .ai-num.s2 { color: var(--accent); }
+        .ai-score .ai-num.low { color: var(--warning); }
+        .ai-score .ai-bar {
+            height: 3px;
+            background: var(--surface-3);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .ai-score .ai-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+        .ai-score.s2 .ai-bar-fill { background: var(--accent); }
+        .ai-comment {
+            font-size: 0.85rem;
+            line-height: 1.65;
+            color: var(--text-2);
+            padding: 8px 12px;
+            background: var(--surface);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+        .ai-loading {
+            font-size: 0.8rem;
+            color: var(--text-3);
+            padding: 12px;
+            text-align: center;
+            font-style: italic;
+        }
+        .ai-error {
+            font-size: 0.8rem;
+            color: var(--danger);
+            padding: 10px 12px;
+            background: rgba(220, 38, 38, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid var(--danger);
+            margin-bottom: 10px;
+        }
+
+        /* ============== Toast ============== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--text);
+            color: var(--surface);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+            max-width: 320px;
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: var(--success); color: white; }
+        .toast.error { background: var(--danger); color: white; }
+
+        /* ============== Responsive ============== */
+        @media (max-width: 640px) {
+            .app { padding: 0 16px; }
+            .file-name { max-width: 200px; }
+            .result-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎭 角色对话统计工具</h1>
-            <p>上传日志文件，自动分析角色对话统计数据</p>
-        </div>
+    <div class="app">
 
-        <div class="error-message" id="errorMessage"></div>
-
-        <div class="upload-section" id="uploadSection">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">点击或拖拽上传日志文件</div>
-                <div class="upload-hint">支持 .txt 格式，最大 16MB</div>
+        <header class="header">
+            <div class="brand">
+                <div class="brand-mark">L</div>
+                <span>角色对话统计工具</span>
+                <span class="brand-version">v3.2</span>
             </div>
-            <input type="file" id="fileInput" accept=".txt">
-        </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="feedbackBtn" title="反馈 / 留言条" style="width:auto; padding:0 12px; gap:6px; font-size:0.82rem; font-weight:500;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M12 17v4"/><path d="M9 17h6a4 4 0 0 0 1.5-7.7A5 5 0 1 0 7.5 9.3 4 4 0 0 0 9 17z"/></svg>
+                    反馈
+                </button>
+                <button class="icon-btn" id="themeToggle" title="切换主题">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+            </div>
+        </header>
 
-        <div class="loading" id="loading">
-            <div class="loading-spinner"></div>
-            <p>正在分析日志文件，请稍候...</p>
-        </div>
+        <main class="page">
 
-        <div class="results-section" id="resultsSection">
-            <div class="result-header">
-                <div class="result-title" id="resultTitle">统计结果</div>
-                <button class="download-btn" id="downloadBtn">📥 下载 Excel 报告</button>
+            <!-- Initial state -->
+            <div id="introBlock">
+                <h1 class="page-title">分析跑团日志</h1>
+                <p class="page-desc">上传海豹骰 / AstralDice 等骰娘导出的 .txt 日志，自动识别格式并生成统计报告</p>
+
+                <div class="upload-card">
+                    <div class="upload-zone" id="uploadArea">
+                        <div class="upload-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <div class="upload-line1">点击或拖拽日志文件到此处</div>
+                        <div class="upload-line2">支持 .txt / .doc / .docx / .html 格式，最大 32 MB</div>
+                        <div class="upload-formats">
+                            <span class="format-chip" style="border-color:var(--primary); color:var(--primary)">海豹骰 SealDice</span>
+                            <span class="format-chip" style="border-color:var(--primary); color:var(--primary)">AstralDice</span>
+                            <span class="format-chip">QQ 导出</span>
+                            <span class="format-chip">其他骰娘</span>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" accept=".txt,.doc,.docx,.html,.htm">
+                </div>
             </div>
 
-            <div id="statsContent"></div>
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">正在分析日志…</div>
+            </div>
 
-            <button class="reset-btn" id="resetBtn">🔄 重新上传</button>
+            <!-- Results -->
+            <div class="results" id="results">
+
+                <div class="result-bar">
+                    <div class="result-info">
+                        <div class="file-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <div>
+                            <div class="file-name" id="resultFilename">—</div>
+                            <div class="file-meta" id="resultMeta">分析完成</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="downloadExcel">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Excel
+                        </button>
+                        <button class="btn" id="downloadCsv">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            CSV
+                        </button>
+                        <button class="btn btn-ghost" id="resetBtn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            重新上传
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overview -->
+                <div class="overview" id="overviewGrid"></div>
+
+                <!-- Tabs -->
+                <nav class="tabs">
+                    <button class="tab active" data-tab="stats">统计表</button>
+                    <button class="tab" data-tab="charts">图表</button>
+                    <button class="tab" data-tab="dialogue">对话浏览</button>
+                    <button class="tab" data-tab="insights">深度洞察</button>
+                </nav>
+
+                <!-- Stats -->
+                <div class="tab-pane active" id="tab-stats">
+                    <div id="statsContent"></div>
+                </div>
+
+                <!-- Charts -->
+                <div class="tab-pane" id="tab-charts">
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <h4>发言数分布</h4>
+                            <div class="chart-sub">前 10 位角色的发言占比</div>
+                            <div class="chart-canvas-wrap"><canvas id="chartMessages"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>字数对比</h4>
+                            <div class="chart-sub">按总字数排序</div>
+                            <div class="chart-canvas-wrap"><canvas id="chartChars"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>每日发言趋势</h4>
+                            <div class="chart-sub">堆叠柱形图，按角色分类</div>
+                            <div class="chart-canvas-wrap"><canvas id="chartDaily"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>参与时长</h4>
+                            <div class="chart-sub">扣除休息间隔的实际分钟数</div>
+                            <div class="chart-canvas-wrap"><canvas id="chartTime"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dialogue -->
+                <div class="tab-pane" id="tab-dialogue">
+                    <div class="dialogue-layout">
+                        <aside class="roster">
+                            <div class="roster-head">
+                                <input type="text" class="roster-search" id="speakerSearch" placeholder="搜索角色">
+                            </div>
+                            <div class="roster-list" id="speakerList"></div>
+                        </aside>
+                        <div class="scriptbody">
+                            <div class="script-toolbar">
+                                <div class="filter-group">
+                                    <button class="filter-chip active" data-filter="all">全部</button>
+                                    <button class="filter-chip" data-filter="ic">在场</button>
+                                    <button class="filter-chip" data-filter="ooc">场外</button>
+                                </div>
+                                <input type="text" class="script-search" id="dialogueSearch" placeholder="按内容搜索…">
+                            </div>
+                            <div id="dialogueContent">
+                                <div class="script-empty">从左侧选择一个角色开始浏览对话</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights -->
+                <div class="tab-pane" id="tab-insights">
+                    <div class="ai-config-bar" id="aiConfigBar">
+                        <span class="label">AI 评分</span>
+                        <span id="aiStatusBadge" class="badge-warn">未配置</span>
+                        <span class="label" id="aiModelLabel" style="display:none">·</span>
+                        <span class="value" id="aiModelDisplay" style="display:none"></span>
+                        <div style="flex:1"></div>
+                        <button class="btn" id="aiConfigBtn" style="font-size:0.78rem; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            配置
+                        </button>
+                        <button class="btn btn-primary" id="aiAllBtn" style="font-size:0.78rem; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;" disabled>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+                            全部评分
+                        </button>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div class="panel-title">全局高频词</div>
+                            <div class="panel-meta">来自所有在场对话</div>
+                        </div>
+                        <div style="padding: 16px;">
+                            <div class="word-cloud" id="globalKeywords"></div>
+                        </div>
+                    </div>
+                    <div class="insights-grid" id="insightGrid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal-bg" id="feedbackModal">
+        <div class="modal" style="max-width:640px;">
+            <h3 style="display:flex; align-items:center; gap:8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)"><path d="M9 21h6"/><path d="M12 17v4"/><path d="M9 17h6a4 4 0 0 0 1.5-7.7A5 5 0 1 0 7.5 9.3 4 4 0 0 0 9 17z"/></svg>
+                反馈 · 留言板
+            </h3>
+            <p class="modal-desc">遇到无法解析的日志？想要新功能？或者只是想留几句话——都可以投这里。<strong>留言条</strong>会在下方公开展示，<strong>附件</strong>所有人都能下载（请确保不含隐私信息）。</p>
+            <div class="modal-body">
+                <!-- 投递区 -->
+                <div id="feedbackForm">
+                    <div class="modal-field">
+                        <label>昵称（选填）</label>
+                        <input type="text" id="fbNickname" placeholder="路过者" maxlength="20">
+                    </div>
+                    <div class="modal-field">
+                        <label>留言条 *（最多 200 字）</label>
+                        <textarea id="fbMessage" rows="2" maxlength="200" placeholder="例：海豹骰 docx 里有一种 [图片] 占位符没识别成功" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;font-size:0.92rem;resize:vertical;"></textarea>
+                    </div>
+                    <div class="modal-field">
+                        <label>详细描述（选填，最多 4000 字）</label>
+                        <textarea id="fbDescription" rows="4" maxlength="4000" placeholder="重现步骤、期望结果、其他备注……" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
+                    </div>
+                    <div class="modal-field">
+                        <label>附件 · 无法解析的日志（选填）</label>
+                        <input type="file" id="fbAttachment" accept=".txt,.doc,.docx,.html,.htm,.log,.json">
+                        <div class="hint">支持 .txt / .doc / .docx / .html / .log / .json，单文件 ≤ 32 MB。会公开下载。</div>
+                    </div>
+                </div>
+
+                <!-- 列表区（默认收起） -->
+                <details id="feedbackListWrap" style="margin-top:10px; padding:10px 12px; background:var(--surface-2); border-radius:6px;">
+                    <summary style="cursor:pointer; font-size:0.88rem; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        查看所有反馈 <span id="fbCount" style="color:var(--text-3);font-weight:400">(加载中…)</span>
+                    </summary>
+                    <div id="feedbackList" style="margin-top:14px; max-height:380px; overflow-y:auto; padding-right:6px;">
+                        <div style="text-align:center; padding:20px; color:var(--text-3); font-size:0.85rem;">加载中…</div>
+                    </div>
+                </details>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="fbModalClose">关闭</button>
+                <button class="btn btn-primary" id="fbModalSubmit" style="display:inline-flex; align-items:center; gap:6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    投递
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-bg" id="aiModal">
+        <div class="modal">
+            <h3>AI 评分配置</h3>
+            <p class="modal-desc">配置 OpenAI 或 Anthropic 兼容 API，让模型为每位角色给出扮演分与影响分。配置仅保存在本地浏览器。</p>
+            <div class="modal-body">
+            <div class="modal-field">
+                <label>API 协议</label>
+                <div style="display:flex; gap:0; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+                    <button type="button" class="provider-btn active" data-provider="openai" style="flex:1; padding:8px 12px; border:none; background:var(--text); color:var(--surface); font-family:inherit; font-size:0.85rem; cursor:pointer; font-weight:500;">OpenAI 兼容</button>
+                    <button type="button" class="provider-btn" data-provider="anthropic" style="flex:1; padding:8px 12px; border:none; background:var(--surface); color:var(--text-2); font-family:inherit; font-size:0.85rem; cursor:pointer; font-weight:500; border-left:1px solid var(--border);">Anthropic Claude</button>
+                </div>
+                <div class="hint">OpenAI 兼容: gpt-4o / DeepSeek / Moonshot / 通义 / ollama 等。Anthropic: 官方 Claude API 或第三方代理（不走 OpenAI 协议）。</div>
+            </div>
+            <div class="modal-field">
+                <label>Base URL</label>
+                <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1">
+                <div class="hint" id="aiBaseUrlHint">兼容地址，如 OpenAI、DeepSeek、Moonshot、本地 ollama (http://localhost:11434/v1) 等。</div>
+            </div>
+            <div class="modal-field">
+                <label>API Key</label>
+                <input type="password" id="aiApiKey" placeholder="sk-...">
+                <div class="hint">保存在浏览器 localStorage；拉取模型与评分时会发送到本服务端，由服务端转发给模型 API。</div>
+            </div>
+            <div class="modal-field">
+                <label>模型名称</label>
+                <div style="position:relative; display:flex; gap:6px; align-items:stretch;">
+                    <div style="flex:1; position:relative;">
+                        <input type="text" id="aiModel" placeholder="gpt-4o-mini" autocomplete="off" style="width:100%; padding-right:32px;">
+                        <button type="button" id="aiModelDropdownBtn" title="显示全部模型" style="position:absolute; right:1px; top:1px; bottom:1px; width:30px; border:none; background:transparent; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">▼</button>
+                        <div id="aiModelDropdown" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; max-height:240px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:10;"></div>
+                    </div>
+                    <button class="btn" id="aiFetchModels" type="button" style="padding:6px 12px; white-space:nowrap; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        拉取列表
+                    </button>
+                </div>
+                <div class="hint" id="aiModelHint">点击「拉取列表」从 base_url + api_key 自动获取可用模型；点击 ▼ 查看全部，输入框中输入可过滤；也可手填。</div>
+            </div>
+
+            <details style="margin-top:12px; padding:10px 12px; background:var(--surface-2); border-radius:6px;">
+                <summary style="cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--text-2); display:flex; align-items:center; gap:6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                    高级参数（采样与生成）
+                </summary>
+                <div style="margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="modal-field" style="margin-bottom:0">
+                        <label style="font-size:0.75rem">输出 max_tokens</label>
+                        <input type="number" id="aiMaxTokens" min="512" max="65536" step="512" placeholder="8192">
+                        <div class="hint" style="font-size:0.7rem">单次响应上限。思考型模型（Claude 4.x、o-series）建议 8192-16384。</div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:0">
+                        <label style="font-size:0.75rem">温度 temperature</label>
+                        <input type="number" id="aiTemperature" min="0" max="2" step="0.1" placeholder="1.0">
+                        <div class="hint" style="font-size:0.7rem">0=最稳定，1=平衡，1.5+=更发散。</div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:0">
+                        <label style="font-size:0.75rem">在场样本数</label>
+                        <input type="number" id="aiIcN" min="3" max="500" placeholder="60">
+                        <div class="hint" style="font-size:0.7rem">送给模型的 IC 发言条数。</div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:0">
+                        <label style="font-size:0.75rem">场外样本数</label>
+                        <input type="number" id="aiOocN" min="0" max="200" placeholder="20">
+                        <div class="hint" style="font-size:0.7rem">OOC 发言条数；可设 0。</div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:0; grid-column:span 2">
+                        <label style="font-size:0.75rem">输入字符上限 (sample_hard_cap)</label>
+                        <input type="number" id="aiSampleCap" min="2000" max="200000" step="1000" placeholder="16000">
+                        <div class="hint" style="font-size:0.7rem">送给模型的样本总字符上限（约 4-5 字 ≈ 1 token）。Claude 1M 上下文可设 100000+；GPT-4o 设 30000；ollama 看模型。</div>
+                    </div>
+                </div>
+            </details>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="aiModalClose">取消</button>
+                <button class="btn" id="aiModalClear">清空</button>
+                <button class="btn btn-primary" id="aiModalSave">保存</button>
+            </div>
         </div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const uploadSection = document.getElementById('uploadSection');
-        const loading = document.getElementById('loading');
-        const resultsSection = document.getElementById('resultsSection');
-        const statsContent = document.getElementById('statsContent');
-        const resultTitle = document.getElementById('resultTitle');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const errorMessage = document.getElementById('errorMessage');
+    const $ = (id) => document.getElementById(id);
+    const dataState = { result: null, currentSpeaker: null, dialogueFilter: 'all', kpSet: new Set() };
+    const charts = {};
 
-        let downloadId = '';
-        let excelFilename = '';
-
-        // 点击上传区域
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
+    function resetViewState() {
+        dataState.currentSpeaker = null;
+        dataState.dialogueFilter = 'all';
+        dataState.kpSet = new Set();
+        ['speakerSearch', 'dialogueSearch'].forEach(id => {
+            const el = $(id);
+            if (el) el.value = '';
         });
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.filter === 'all');
+        });
+        const dialogue = $('dialogueContent');
+        if (dialogue) {
+            dialogue.innerHTML = '<div class="script-empty">选择左侧角色查看完整发言</div>';
+        }
+        const speakerList = $('speakerList');
+        if (speakerList) speakerList.innerHTML = '';
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === 'stats');
+        });
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === 'tab-stats');
+        });
+    }
 
-        // 文件选择
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                uploadFile(file);
+    const PALETTE = ['#2563eb', '#0891b2', '#16a34a', '#d97706', '#dc2626', '#9333ea', '#0ea5e9', '#65a30d', '#ea580c', '#be185d', '#0d9488', '#7c3aed'];
+
+    function colorFor(name) {
+        let h = 0;
+        for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+        return PALETTE[h % PALETTE.length];
+    }
+
+    // ============== Theme ==============
+    const themeToggle = $('themeToggle');
+    const savedTheme = localStorage.getItem('lc-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('lc-theme', next);
+        if (dataState.result) renderCharts();
+    });
+
+    // ============== Toast ==============
+    function toast(msg, kind = 'error') {
+        const el = $('toast');
+        el.textContent = msg;
+        el.className = `toast ${kind} show`;
+        setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    // ============== Upload ==============
+    const uploadArea = $('uploadArea');
+    const fileInput = $('fileInput');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => e.target.files[0] && uploadFile(e.target.files[0]));
+
+    ['dragover','dragenter'].forEach(ev =>
+        uploadArea.addEventListener(ev, e => { e.preventDefault(); uploadArea.classList.add('dragover'); }));
+    ['dragleave','dragend'].forEach(ev =>
+        uploadArea.addEventListener(ev, () => uploadArea.classList.remove('dragover')));
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+    });
+
+    async function uploadFile(file) {
+        if (!/\.(txt|docx?|html?)$/i.test(file.name)) { toast('仅支持 .txt / .doc / .docx / .html 格式'); return; }
+
+        $('introBlock').style.display = 'none';
+        $('loading').style.display = 'block';
+        $('results').classList.remove('show');
+
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            resetViewState();
+            dataState.result = data;
+            render(data);
+        } catch (err) {
+            toast(err.message || '处理失败');
+            $('introBlock').style.display = 'block';
+            $('loading').style.display = 'none';
+        }
+    }
+
+    // ============== Render ==============
+    function render(data) {
+        $('loading').style.display = 'none';
+        $('results').classList.add('show');
+        $('resultFilename').textContent = data.filename;
+        $('resultMeta').textContent = `${data.overview.speakers} 位角色 · ${data.overview.messages.toLocaleString()} 条发言 · ${data.overview.days} 天`;
+
+        renderOverview(data.overview);
+        renderStats(data.stats);
+        renderSpeakerList(data);
+        renderInsights(data);
+        setTimeout(renderCharts, 50);
+    }
+
+    function svgIcon(name) {
+        const icons = {
+            users: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            msg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+            edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+            mic: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>',
+            cal: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+            clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        };
+        return icons[name] || '';
+    }
+
+    // 通用图标库（用于按钮）
+    const ICONS = {
+        bulb:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6"/><path d="M12 17v4"/><path d="M9 17h6a4 4 0 0 0 1.5-7.7A5 5 0 1 0 7.5 9.3 4 4 0 0 0 9 17z"/></svg>',
+        sparkle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>',
+        sliders: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+        download:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        upload:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+        send:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+        list:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+        attach:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+        crown:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>',
+        check:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+        x:       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        spinner: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>',
+        heart:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+        scroll:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-1"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>',
+        feather: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>'
+    };
+
+    function renderOverview(o) {
+        const items = [
+            { label: '角色数', value: o.speakers, icon: 'users' },
+            { label: '总发言', value: o.messages.toLocaleString(), icon: 'msg' },
+            { label: '总字数', value: o.chars.toLocaleString(), icon: 'edit' },
+            { label: '场外发言', value: o.ooc_messages.toLocaleString(), icon: 'mic' },
+            { label: '统计天数', value: o.days, icon: 'cal' },
+        ];
+        if (o.time_display) items.push({ label: '总参与时长', value: o.time_display, icon: 'clock' });
+
+        $('overviewGrid').innerHTML = items.map(s => `
+            <div class="stat-card">
+                <div class="stat-label">${svgIcon(s.icon)} ${s.label}</div>
+                <div class="stat-value">${s.value}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderStats(stats) {
+        const root = $('statsContent');
+        root.innerHTML = '';
+        stats.forEach(section => {
+            if (!section.stats.length) return;
+            const isTotal = section.day === '总计';
+            const headers = Object.keys(section.stats[0]).filter(k => !k.startsWith('_'));
+            const maxMsg = Math.max(...section.stats.map(s => Number(s['总发言数'] || s['发言数'] || 0)));
+
+            const block = document.createElement('div');
+            block.className = 'panel';
+            block.innerHTML = `
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <span class="day-tag ${isTotal ? 'total' : ''}">${isTotal ? '总计' : section.day}</span>
+                        <span>${section.stats.length} 位角色</span>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="tbl">
+                        <thead><tr>${headers.map(h => `<th data-key="${h}">${h}</th>`).join('')}<th>占比</th></tr></thead>
+                        <tbody>${section.stats.map(s => rowHtml(s, headers, maxMsg)).join('')}</tbody>
+                    </table>
+                </div>
+            `;
+            root.appendChild(block);
+            block.querySelectorAll('th[data-key]').forEach(th => {
+                th.addEventListener('click', () => sortTable(block, th, section.stats, headers, maxMsg));
+            });
+        });
+    }
+
+    function rowHtml(s, headers, maxMsg) {
+        const msg = Number(s['总发言数'] || s['发言数'] || 0);
+        const pct = maxMsg ? (msg / maxMsg * 100) : 0;
+        const name = s['角色名'];
+        return `<tr>${headers.map((h, i) => {
+            if (i === 0) return `<td><div class="speaker-cell"><span class="avatar" style="background:${colorFor(name)}">${escapeHtml(name.slice(0,1))}</span><span>${escapeHtml(name)}</span></div></td>`;
+            return `<td class="num">${escapeHtml(String(s[h]))}</td>`;
+        }).join('')}<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td></tr>`;
+    }
+
+    function sortTable(block, th, data, headers, maxMsg) {
+        const key = th.dataset.key;
+        const cur = th.classList.contains('sort-desc') ? 'desc' : (th.classList.contains('sort-asc') ? 'asc' : null);
+        const next = cur === 'desc' ? 'asc' : 'desc';
+        block.querySelectorAll('th').forEach(x => x.classList.remove('sort-asc','sort-desc'));
+        th.classList.add(`sort-${next}`);
+        const sorted = [...data].sort((a,b) => {
+            const va = a[key], vb = b[key];
+            const na = parseFloat(String(va).replace(/[^\d.-]/g,''));
+            const nb = parseFloat(String(vb).replace(/[^\d.-]/g,''));
+            if (!isNaN(na) && !isNaN(nb)) return next === 'asc' ? na - nb : nb - na;
+            return next === 'asc' ? String(va).localeCompare(vb) : String(vb).localeCompare(va);
+        });
+        block.querySelector('tbody').innerHTML = sorted.map(s => rowHtml(s, headers, maxMsg)).join('');
+    }
+
+    // ============== Charts ==============
+    function renderCharts() {
+        if (!dataState.result) return;
+        const total = dataState.result.stats.find(s => s.day === '总计').stats;
+        const css = getComputedStyle(document.documentElement);
+        const text2 = css.getPropertyValue('--text-2').trim();
+        const border = css.getPropertyValue('--border').trim();
+        const surface = css.getPropertyValue('--surface').trim();
+
+        Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.color = text2;
+        Chart.defaults.borderColor = border;
+
+        const top = total.slice(0, 10);
+        const labels = top.map(s => s['角色名']);
+        const colors = labels.map(colorFor);
+
+        Object.values(charts).forEach(c => c && c.destroy());
+
+        charts.messages = new Chart($('chartMessages'), {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: top.map(s => s['总发言数']),
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: surface
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 8 } }
+                }
             }
         });
 
-        // 拖拽上传
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                uploadFile(file);
+        charts.chars = new Chart($('chartChars'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: '总字数', data: top.map(s => s['总字数']),
+                    backgroundColor: colors, borderWidth: 0, borderRadius: 4, barThickness: 14
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: border }, border: { display: false } },
+                    y: { grid: { display: false }, border: { display: false } }
+                }
             }
         });
 
-        // 上传文件
-        async function uploadFile(file) {
-            if (!file.name.endsWith('.txt')) {
-                showError('只支持 .txt 格式的日志文件');
+        const days = dataState.result.stats.filter(s => s.day !== '总计');
+        const speakers = [...new Set(top.map(s => s['角色名']))];
+        const datasets = speakers.map(name => ({
+            label: name,
+            data: days.map(d => {
+                const f = d.stats.find(x => x['角色名'] === name);
+                return f ? Number(f['总发言数'] || f['发言数'] || 0) : 0;
+            }),
+            backgroundColor: colorFor(name),
+            borderWidth: 0,
+            borderRadius: 2
+        }));
+        charts.daily = new Chart($('chartDaily'), {
+            type: 'bar',
+            data: { labels: days.map(d => d.day), datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+                scales: {
+                    x: { stacked: true, grid: { display: false }, border: { display: false } },
+                    y: { stacked: true, grid: { color: border }, border: { display: false } }
+                }
+            }
+        });
+
+        const timed = top.filter(s => s._minutes);
+        if (timed.length) {
+            charts.time = new Chart($('chartTime'), {
+                type: 'bar',
+                data: {
+                    labels: timed.map(s => s['角色名']),
+                    datasets: [{
+                        label: '分钟', data: timed.map(s => s._minutes),
+                        backgroundColor: timed.map(s => colorFor(s['角色名'])),
+                        borderWidth: 0, borderRadius: 4, barThickness: 18
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false } },
+                        y: { grid: { color: border }, border: { display: false } }
+                    }
+                }
+            });
+        } else {
+            const c = $('chartTime');
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.fillStyle = text2;
+            ctx.font = "13px Inter, sans-serif";
+            ctx.textAlign = 'center';
+            ctx.fillText('当前日志无时间戳，无法计算', c.width / 2, c.height / 2);
+        }
+    }
+
+    // ============== Speaker list & dialogue ==============
+    function renderSpeakerList(data) {
+        const total = data.stats.find(s => s.day === '总计').stats;
+        const list = $('speakerList');
+        list.innerHTML = total.map(s => `
+            <div class="roster-item" data-name="${escapeHtml(s['角色名'])}">
+                <span class="avatar" style="background:${colorFor(s['角色名'])}; width:24px; height:24px; font-size:0.7rem; border-radius:5px">${escapeHtml(s['角色名'].slice(0,1))}</span>
+                <span class="roster-name">${escapeHtml(s['角色名'])}</span>
+                <span class="roster-count">${s['总发言数']}</span>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.roster-item').forEach(it => {
+            it.addEventListener('click', () => {
+                list.querySelectorAll('.roster-item').forEach(x => x.classList.remove('active'));
+                it.classList.add('active');
+                dataState.currentSpeaker = it.dataset.name;
+                renderDialogues();
+            });
+        });
+
+        $('speakerSearch').addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            list.querySelectorAll('.roster-item').forEach(it => {
+                it.style.display = it.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    }
+
+    function renderDialogues() {
+        const speaker = dataState.currentSpeaker;
+        const root = $('dialogueContent');
+        if (!speaker) return;
+        const all = dataState.result.dialogues[speaker] || [];
+        const search = $('dialogueSearch').value.toLowerCase();
+        const f = dataState.dialogueFilter;
+        const filtered = all.filter(d => {
+            if (f === 'ic' && d.is_ooc) return false;
+            if (f === 'ooc' && !d.is_ooc) return false;
+            if (search && !d.content.toLowerCase().includes(search)) return false;
+            return true;
+        });
+        if (!filtered.length) {
+            root.innerHTML = `<div class="script-empty">没有匹配的对话</div>`;
+            return;
+        }
+        root.innerHTML = `
+            <div class="script-meta"><strong>${escapeHtml(speaker)}</strong> · 共 ${filtered.length} / ${all.length} 条</div>
+            ${filtered.map(d => `
+                <div class="speech ${d.is_ooc ? 'ooc' : ''}">
+                    <div class="speech-cue">
+                        <span>第 ${d.day} 天</span>
+                        ${d.timestamp ? `<span>· ${escapeHtml(d.timestamp)}</span>` : ''}
+                        ${d.is_ooc ? '<span class="ooc-tag">场外</span>' : ''}
+                    </div>
+                    <div class="speech-body">${escapeHtml(d.content)}</div>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s == null ? '' : String(s);
+        return div.innerHTML;
+    }
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            dataState.dialogueFilter = chip.dataset.filter;
+            renderDialogues();
+        });
+    });
+    $('dialogueSearch').addEventListener('input', renderDialogues);
+
+    // ============== Insights ==============
+    function renderInsights(data) {
+        const gk = $('globalKeywords');
+        const max = Math.max(...(data.global_keywords.map(k => k.count)), 1);
+        gk.innerHTML = data.global_keywords.length
+            ? data.global_keywords.map(k => {
+                const size = 0.85 + (k.count / max) * 0.45;
+                return `<span class="keyword-tag" style="font-size:${size}rem">${escapeHtml(k.word)}<span class="count">${k.count}</span></span>`;
+            }).join('')
+            : '<span style="color:var(--text-3)">数据不足以生成词云</span>';
+
+        const grid = $('insightGrid');
+        const insights = data.insights;
+        const sorted = Object.entries(insights).sort((a,b) =>
+            (data.dialogues[b[0]] || []).length - (data.dialogues[a[0]] || []).length);
+
+        grid.innerHTML = sorted.map(([name, info]) => {
+            const total = (data.dialogues[name] || []).length;
+            return `
+                <article class="folio" data-speaker="${escapeHtml(name)}">
+                    <div class="folio-head">
+                        <span class="avatar" style="background:${colorFor(name)}">${escapeHtml(name.slice(0,1))}</span>
+                        <div class="folio-name">${escapeHtml(name)}</div>
+                        <div class="folio-count">${total} 条</div>
+                    </div>
+                    <div class="ai-actions">
+                        <button class="btn-ai role-toggle-btn" data-speaker="${escapeHtml(name)}" style="font-weight:500">PL</button>
+                        <button class="btn-ai ai-rate-btn" data-speaker="${escapeHtml(name)}" style="display:inline-flex; align-items:center; gap:4px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+                            AI 评分
+                        </button>
+                    </div>
+                    <div class="ai-result-slot" data-speaker="${escapeHtml(name)}"></div>
+                    <div class="folio-stats">
+                        <div class="folio-stat">
+                            <div class="label">在场均长</div>
+                            <div class="value">${info.avg_ic_length}</div>
+                        </div>
+                        <div class="folio-stat">
+                            <div class="label">场外均长</div>
+                            <div class="value">${info.avg_ooc_length}</div>
+                        </div>
+                        <div class="folio-stat">
+                            <div class="label">最长发言</div>
+                            <div class="value">${info.longest_message ? info.longest_message.length : 0}</div>
+                        </div>
+                    </div>
+                    ${info.keywords && info.keywords.length ? `
+                        <div class="folio-section">
+                            <div class="folio-section-label">高频词</div>
+                            <div class="word-cloud">
+                                ${info.keywords.slice(0,8).map(k => `<span class="keyword-tag">${escapeHtml(k.word)}<span class="count">${k.count}</span></span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${info.longest_message && info.longest_message.length ? `
+                        <div class="folio-section">
+                            <div class="folio-section-label">最长发言摘录</div>
+                            <div class="folio-quote">${escapeHtml(info.longest_message.content.slice(0, 280))}${info.longest_message.content.length > 280 ? '…' : ''}</div>
+                        </div>
+                    ` : ''}
+                </article>
+            `;
+        }).join('');
+
+        // Bind AI rate buttons
+        grid.querySelectorAll('.ai-rate-btn').forEach(btn => {
+            btn.addEventListener('click', () => rateOne(btn.dataset.speaker));
+        });
+
+        // Bind role toggle (PL/KP)
+        grid.querySelectorAll('.role-toggle-btn').forEach(btn => {
+            updateRoleBtn(btn);
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.speaker;
+                if (dataState.kpSet.has(name)) dataState.kpSet.delete(name);
+                else dataState.kpSet.add(name);
+                grid.querySelectorAll('.role-toggle-btn').forEach(b => {
+                    if (b.dataset.speaker === name) updateRoleBtn(b);
+                });
+            });
+        });
+    }
+
+    function updateRoleBtn(btn) {
+        const name = btn.dataset.speaker;
+        const isKp = dataState.kpSet.has(name);
+        if (isKp) {
+            btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg> KP';
+        } else {
+            btn.innerHTML = 'PL';
+        }
+        btn.style.display = 'inline-flex';
+        btn.style.alignItems = 'center';
+        btn.style.gap = '4px';
+        btn.title = isKp ? '点击切回 PL（玩家）' : '点击标为 KP（守密人）';
+        btn.style.background = isKp ? 'linear-gradient(135deg, #d97706, #f59e0b)' : 'var(--surface)';
+        btn.style.color = isKp ? '#fff' : 'var(--text-2)';
+        btn.style.borderColor = isKp ? '#d97706' : 'var(--border)';
+    }
+
+    // ============== Tabs ==============
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            $(`tab-${tab.dataset.tab}`).classList.add('active');
+            if (tab.dataset.tab === 'charts') setTimeout(renderCharts, 50);
+        });
+    });
+
+    // ============== Buttons ==============
+    $('downloadExcel').addEventListener('click', async () => {
+        const { download_id, excel_filename } = dataState.result;
+        try {
+            const res = await fetch(`/api/download/${download_id}/${excel_filename}`);
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = excel_filename;
+            document.body.appendChild(a); a.click();
+            URL.revokeObjectURL(url); document.body.removeChild(a);
+            toast('Excel 下载已开始', 'success');
+        } catch { toast('下载失败'); }
+    });
+
+    $('downloadCsv').addEventListener('click', async () => {
+        const { download_id, stats, filename } = dataState.result;
+        const csvName = filename.replace(/\.[^.]+$/i, '') + '.csv';
+        try {
+            const res = await fetch(`/api/download_csv/${download_id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stats, filename: csvName })
+            });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = csvName;
+            document.body.appendChild(a); a.click();
+            URL.revokeObjectURL(url); document.body.removeChild(a);
+            toast('CSV 下载已开始', 'success');
+        } catch { toast('CSV 生成失败'); }
+    });
+
+    async function reset() {
+        if (dataState.result) {
+            const { download_id, excel_filename } = dataState.result;
+            try { await fetch(`/api/cleanup/${download_id}/${excel_filename}`, { method: 'POST' }); } catch {}
+        }
+        dataState.result = null;
+        resetViewState();
+        $('introBlock').style.display = 'block';
+        $('results').classList.remove('show');
+        fileInput.value = '';
+    }
+
+    $('resetBtn').addEventListener('click', reset);
+
+    // ============== AI Review ==============
+    const AI_KEY = 'lc-ai-config';
+    function getAiConfig() {
+        try { return JSON.parse(localStorage.getItem(AI_KEY) || '{}'); } catch { return {}; }
+    }
+    function setAiConfig(cfg) { localStorage.setItem(AI_KEY, JSON.stringify(cfg)); }
+
+    function refreshAiStatus() {
+        const cfg = getAiConfig();
+        const ok = cfg.base_url && cfg.api_key && cfg.model;
+        const badge = $('aiStatusBadge');
+        const lbl = $('aiModelLabel');
+        const dis = $('aiModelDisplay');
+        const allBtn = $('aiAllBtn');
+        if (ok) {
+            badge.className = 'badge-ok';
+            const providerLabel = cfg.provider === 'anthropic' ? 'Anthropic' : 'OpenAI';
+            badge.textContent = `${providerLabel} · 已就绪`;
+            lbl.style.display = '';
+            dis.style.display = '';
+            dis.textContent = cfg.model;
+            allBtn.disabled = false;
+        } else {
+            badge.className = 'badge-warn';
+            badge.textContent = '未配置';
+            lbl.style.display = 'none';
+            dis.style.display = 'none';
+            allBtn.disabled = true;
+        }
+    }
+    refreshAiStatus();
+
+    $('aiConfigBtn').addEventListener('click', () => {
+        const cfg = getAiConfig();
+        const provider = cfg.provider || 'openai';
+        $('aiBaseUrl').value = cfg.base_url || '';
+        $('aiApiKey').value = cfg.api_key || '';
+        $('aiModel').value = cfg.model || '';
+        $('aiMaxTokens').value = cfg.max_tokens || '';
+        $('aiTemperature').value = cfg.temperature !== undefined ? cfg.temperature : '';
+        $('aiIcN').value = cfg.ic_sample_n || '';
+        $('aiOocN').value = cfg.ooc_sample_n !== undefined ? cfg.ooc_sample_n : '';
+        $('aiSampleCap').value = cfg.sample_hard_cap || '';
+        setProviderUI(provider);
+        $('aiModal').classList.add('show');
+    });
+
+    function setProviderUI(provider) {
+        document.querySelectorAll('.provider-btn').forEach(b => {
+            const isActive = b.dataset.provider === provider;
+            b.classList.toggle('active', isActive);
+            b.style.background = isActive ? 'var(--text)' : 'var(--surface)';
+            b.style.color = isActive ? 'var(--surface)' : 'var(--text-2)';
+        });
+        const baseInput = $('aiBaseUrl');
+        const modelInput = $('aiModel');
+        const hint = $('aiBaseUrlHint');
+        if (provider === 'anthropic') {
+            if (!baseInput.value) baseInput.placeholder = 'https://api.anthropic.com';
+            else baseInput.placeholder = 'https://api.anthropic.com';
+            modelInput.placeholder = 'claude-sonnet-4-6 / claude-haiku-4-5';
+            hint.textContent = 'Anthropic 官方: https://api.anthropic.com（注意不带 /v1，端点会自动加上）。或第三方 Claude 代理。';
+        } else {
+            baseInput.placeholder = 'https://api.openai.com/v1';
+            modelInput.placeholder = 'gpt-4o-mini';
+            hint.textContent = '兼容地址，如 OpenAI、DeepSeek、Moonshot、本地 ollama (http://localhost:11434/v1) 等，需带 /v1 路径。';
+        }
+    }
+
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+        btn.addEventListener('click', () => setProviderUI(btn.dataset.provider));
+    });
+
+    function getActiveProvider() {
+        const active = document.querySelector('.provider-btn.active');
+        return active ? active.dataset.provider : 'openai';
+    }
+    $('aiModalClose').addEventListener('click', () => $('aiModal').classList.remove('show'));
+    $('aiModal').addEventListener('click', (e) => {
+        if (e.target.id === 'aiModal') $('aiModal').classList.remove('show');
+    });
+    $('aiModalClear').addEventListener('click', () => {
+        if (!confirm('确定要清空 AI 配置？')) return;
+        localStorage.removeItem(AI_KEY);
+        $('aiBaseUrl').value = '';
+        $('aiApiKey').value = '';
+        $('aiModel').value = '';
+        refreshAiStatus();
+        toast('AI 配置已清空', 'success');
+    });
+    $('aiModalSave').addEventListener('click', () => {
+        const numOrUndef = (v) => {
+            const n = Number(v);
+            return v === '' || isNaN(n) ? undefined : n;
+        };
+        const cfg = {
+            provider: getActiveProvider(),
+            base_url: $('aiBaseUrl').value.trim(),
+            api_key: $('aiApiKey').value.trim(),
+            model: $('aiModel').value.trim(),
+            max_tokens: numOrUndef($('aiMaxTokens').value),
+            temperature: numOrUndef($('aiTemperature').value),
+            ic_sample_n: numOrUndef($('aiIcN').value),
+            ooc_sample_n: numOrUndef($('aiOocN').value),
+            sample_hard_cap: numOrUndef($('aiSampleCap').value),
+        };
+        if (!cfg.base_url || !cfg.api_key || !cfg.model) {
+            toast('请填写完整配置');
+            return;
+        }
+        setAiConfig(cfg);
+        refreshAiStatus();
+        $('aiModal').classList.remove('show');
+        toast('AI 配置已保存', 'success');
+    });
+
+    // Custom model dropdown
+    let aiModelOptions = [];
+
+    function renderModelDropdown(filter = '') {
+        const dd = $('aiModelDropdown');
+        const q = filter.toLowerCase();
+        const matches = aiModelOptions.filter(m => !q || m.toLowerCase().includes(q));
+        if (!matches.length) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:var(--text-3); font-size:0.85rem">${aiModelOptions.length ? '无匹配项' : '尚未拉取模型列表'}</div>`;
+            return;
+        }
+        dd.innerHTML = matches.map(m => `
+            <div class="model-opt" data-model="${escapeHtml(m)}" style="padding:8px 12px; cursor:pointer; font-family:'JetBrains Mono', monospace; font-size:0.85rem; border-bottom:1px solid var(--border);">${escapeHtml(m)}</div>
+        `).join('');
+        dd.querySelectorAll('.model-opt').forEach(el => {
+            el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-3)');
+            el.addEventListener('mouseleave', () => el.style.background = '');
+            el.addEventListener('click', () => {
+                $('aiModel').value = el.dataset.model;
+                hideModelDropdown();
+            });
+        });
+    }
+
+    function showModelDropdown(useFilter = true) {
+        renderModelDropdown(useFilter ? $('aiModel').value : '');
+        $('aiModelDropdown').style.display = 'block';
+    }
+    function hideModelDropdown() {
+        $('aiModelDropdown').style.display = 'none';
+    }
+
+    $('aiModelDropdownBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dd = $('aiModelDropdown');
+        if (dd.style.display === 'block') hideModelDropdown();
+        else showModelDropdown(false);
+    });
+
+    $('aiModel').addEventListener('focus', () => {
+        if (aiModelOptions.length) showModelDropdown(true);
+    });
+    $('aiModel').addEventListener('input', () => {
+        if (aiModelOptions.length) showModelDropdown(true);
+    });
+
+    // 点击 modal 其他区域关闭下拉
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#aiModel') && !e.target.closest('#aiModelDropdownBtn') && !e.target.closest('#aiModelDropdown')) {
+            hideModelDropdown();
+        }
+    });
+    $('aiFetchModels').addEventListener('click', async () => {
+        const provider = getActiveProvider();
+        const baseUrl = $('aiBaseUrl').value.trim();
+        const apiKey = $('aiApiKey').value.trim();
+        if (!baseUrl || !apiKey) {
+            toast('先填写 Base URL 和 API Key');
+            return;
+        }
+        const btn = $('aiFetchModels');
+        const hint = $('aiModelHint');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;vertical-align:middle"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> 拉取中…';
+        hint.textContent = '正在获取模型列表…';
+        hint.style.color = 'var(--text-3)';
+        try {
+            const res = await fetch('/api/ai_models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, base_url: baseUrl, api_key: apiKey })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            aiModelOptions = data.models;
+            renderModelDropdown('');
+            hint.textContent = `共 ${data.models.length} 个模型；点击输入框或 ▼ 查看全部，输入可过滤。`;
+            hint.style.color = 'var(--success)';
+            if (!$('aiModel').value && data.models.length) {
+                const preferred = data.models.find(m => /opus-4-7|sonnet-4-6|gpt-4o-mini|deepseek-chat/.test(m)) || data.models[0];
+                $('aiModel').value = preferred;
+            }
+            toast(`已加载 ${data.models.length} 个模型`, 'success');
+        } catch (err) {
+            hint.textContent = `✕ ${err.message || '拉取失败'}`;
+            hint.style.color = 'var(--danger)';
+            toast(err.message || '拉取失败');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    });
+
+    function findResultSlot(speaker) {
+        return document.querySelector(`.ai-result-slot[data-speaker="${CSS.escape(speaker)}"]`);
+    }
+
+    function findRateBtn(speaker) {
+        return document.querySelector(`.ai-rate-btn[data-speaker="${CSS.escape(speaker)}"]`);
+    }
+
+    async function rateOne(speaker) {
+        const cfg = getAiConfig();
+        if (!cfg.base_url || !cfg.api_key || !cfg.model) {
+            toast('请先配置 AI');
+            $('aiConfigBtn').click();
+            return null;
+        }
+
+        const result = dataState.result;
+        if (!result) return null;
+        const dialogues = result.dialogues[speaker] || [];
+        if (!dialogues.length) {
+            toast(`${speaker} 没有可评分的发言`);
+            return null;
+        }
+
+        const slot = findResultSlot(speaker);
+        const btn = findRateBtn(speaker);
+        if (slot) slot.innerHTML = '<div class="ai-loading"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;vertical-align:middle"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> AI 评分中…通常需要 5-30 秒</div>';
+        if (btn) btn.disabled = true;
+
+        const totalRow = result.stats.find(s => s.day === '总计').stats.find(s => s['角色名'] === speaker) || {};
+        const stats = {
+            messages: totalRow['总发言数'] || 0,
+            chars: totalRow['总字数'] || 0,
+            ooc_messages: totalRow['场外次数'] || 0,
+            participation_minutes: totalRow._minutes || 0
+        };
+
+        try {
+            const res = await fetch('/api/ai_review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: cfg.provider || 'openai',
+                    base_url: cfg.base_url,
+                    api_key: cfg.api_key,
+                    model: cfg.model,
+                    max_tokens: cfg.max_tokens,
+                    temperature: cfg.temperature,
+                    ic_sample_n: cfg.ic_sample_n,
+                    ooc_sample_n: cfg.ooc_sample_n,
+                    sample_hard_cap: cfg.sample_hard_cap,
+                    speaker,
+                    is_kp: dataState.kpSet.has(speaker),
+                    samples: dialogues,
+                    stats,
+                    context: {
+                        total_speakers: result.overview.speakers,
+                        total_messages: result.overview.messages,
+                        days: result.overview.days
+                    }
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            renderAiResult(speaker, data);
+            return data;
+        } catch (err) {
+            if (slot) slot.innerHTML = `<div class="ai-error">✕ ${escapeHtml(err.message || '评分失败')}</div>`;
+            return null;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    function renderAiResult(speaker, data) {
+        const slot = findResultSlot(speaker);
+        if (!slot) return;
+        const rp = data.roleplay_score;
+        const ip = data.impact_score;
+        const lowRp = rp < 60 ? 'low' : '';
+        const lowIp = ip < 60 ? 'low' : '';
+        const isKp = data.is_kp;
+        const rpLabel = isKp ? '叙事力' : '扮演分';
+        const ipLabel = isKp ? '主持力' : '影响分';
+        const sampled = data.sampled
+            ? `<div style="font-size:0.7rem;color:var(--text-3);text-align:right;margin-top:6px">${isKp ? 'KP 模式 · ' : ''}采样: ${data.sampled.ic_used}/${data.sampled.ic_total} 在场 · ${data.sampled.ooc_used}/${data.sampled.ooc_total} 场外</div>`
+            : '';
+        slot.innerHTML = `
+            <div class="ai-result">
+                <div class="ai-scores">
+                    <div class="ai-score">
+                        <div class="ai-label">${rpLabel}</div>
+                        <div class="ai-num ${lowRp}">${rp}<span style="font-size:0.6em;color:var(--text-3);font-weight:500"> /100</span></div>
+                        <div class="ai-bar"><div class="ai-bar-fill" style="width:${rp}%"></div></div>
+                    </div>
+                    <div class="ai-score s2">
+                        <div class="ai-label">${ipLabel}</div>
+                        <div class="ai-num s2 ${lowIp}">${ip}<span style="font-size:0.6em;color:var(--text-3);font-weight:500"> /100</span></div>
+                        <div class="ai-bar"><div class="ai-bar-fill" style="width:${ip}%"></div></div>
+                    </div>
+                </div>
+                ${data.comment ? `<div class="ai-comment">${escapeHtml(data.comment)}</div>` : ''}
+                ${sampled}
+            </div>
+        `;
+    }
+
+    $('aiAllBtn').addEventListener('click', async () => {
+        if (!dataState.result) return;
+        const cfg = getAiConfig();
+        if (!cfg.base_url || !cfg.api_key || !cfg.model) { toast('请先配置 AI'); return; }
+        const speakers = Object.keys(dataState.result.dialogues);
+        if (!speakers.length) return;
+        if (!confirm(`将依次为 ${speakers.length} 位角色调用 AI 评分，可能需要 ${speakers.length * 10} 秒以上，并产生 API 费用。继续？`)) return;
+        const btn = $('aiAllBtn');
+        btn.disabled = true;
+        const original = btn.innerHTML;
+        for (let i = 0; i < speakers.length; i++) {
+            btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;vertical-align:middle"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> ${i+1}/${speakers.length} ${escapeHtml(speakers[i])}`;
+            await rateOne(speakers[i]);
+        }
+        btn.disabled = false;
+        btn.innerHTML = original;
+        toast('全部评分完成', 'success');
+    });
+    // ============== Feedback ==============
+    const FB_NICK_KEY = 'lc-feedback-nick';
+
+    function timeAgo(ts) {
+        if (!ts) return '';
+        const diff = Date.now() / 1000 - ts;
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return `${Math.floor(diff/60)} 分钟前`;
+        if (diff < 86400) return `${Math.floor(diff/3600)} 小时前`;
+        if (diff < 86400 * 30) return `${Math.floor(diff/86400)} 天前`;
+        const d = new Date(ts * 1000);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    async function loadFeedbackList() {
+        const list = $('feedbackList');
+        const cnt = $('fbCount');
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:0.85rem">加载中…</div>';
+        try {
+            const res = await fetch('/api/feedback');
+            const data = await res.json();
+            const items = data.items || [];
+            cnt.textContent = `(${items.length})`;
+            if (!items.length) {
+                list.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--text-3);font-size:0.88rem">还没有人留言，欢迎当第一位 ~</div>';
                 return;
             }
-
-            hideError();
-            uploadSection.style.display = 'none';
-            loading.style.display = 'block';
-            resultsSection.style.display = 'none';
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // 保存下载信息
-                downloadId = data.download_id;
-                excelFilename = data.excel_filename;
-
-                // 显示结果
-                displayResults(data);
-
-            } catch (error) {
-                showError(error.message || '处理文件时出错');
-                uploadSection.style.display = 'block';
-                loading.style.display = 'none';
-            }
+            list.innerHTML = items.map(it => {
+                const name = it.nickname || '路过者';
+                const c = colorFor(name);
+                const dlBtn = it.attachment
+                    ? `<a href="/api/feedback/${it.id}/attachment" download="${escapeHtml(it.attachment)}" class="btn-ai" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; margin-top:8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> ${escapeHtml(it.attachment)}</a>`
+                    : '';
+                const desc = it.description
+                    ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.78rem;color:var(--text-3)">展开详细描述</summary><div style="margin-top:6px;padding:10px;background:var(--surface);border-radius:6px;font-size:0.85rem;white-space:pre-wrap;line-height:1.6;">${escapeHtml(it.description)}</div></details>`
+                    : '';
+                return `
+                    <div style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <div class="avatar" style="background:${c}; width:26px; height:26px; font-size:0.75rem; border-radius:6px;">${escapeHtml(name.slice(0,1))}</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:0.88rem">${escapeHtml(name)}</div>
+                                <div style="font-size:0.7rem;color:var(--text-3)">${timeAgo(it.created_at)}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:0.92rem;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word;">${escapeHtml(it.message)}</div>
+                        ${dlBtn}
+                        ${desc}
+                    </div>
+                `;
+            }).join('');
+        } catch (err) {
+            list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center">加载失败</div>';
         }
+    }
 
-        // 显示结果
-        function displayResults(data) {
-            loading.style.display = 'none';
-            resultsSection.style.display = 'block';
+    $('feedbackBtn').addEventListener('click', () => {
+        const savedNick = localStorage.getItem(FB_NICK_KEY) || '';
+        $('fbNickname').value = savedNick;
+        $('fbMessage').value = '';
+        $('fbDescription').value = '';
+        $('fbAttachment').value = '';
+        $('feedbackModal').classList.add('show');
+        loadFeedbackList();
+    });
 
-            resultTitle.textContent = `📊 ${data.filename} - 统计结果`;
+    $('fbModalClose').addEventListener('click', () => $('feedbackModal').classList.remove('show'));
+    $('feedbackModal').addEventListener('click', (e) => {
+        if (e.target.id === 'feedbackModal') $('feedbackModal').classList.remove('show');
+    });
 
-            statsContent.innerHTML = '';
+    $('fbModalSubmit').addEventListener('click', async () => {
+        const nickname = $('fbNickname').value.trim();
+        const message = $('fbMessage').value.trim();
+        const description = $('fbDescription').value.trim();
+        const file = $('fbAttachment').files[0];
 
-            data.stats.forEach((dayData, index) => {
-                const container = document.createElement('div');
-                container.className = 'stats-container';
+        if (!message) { toast('请填写留言条'); return; }
+        if (message.length > 200) { toast('留言条最多 200 字'); return; }
 
-                const dayHeader = document.createElement('div');
-                dayHeader.className = 'day-header';
-                dayHeader.textContent = dayData.day === '总计' ? '📈 总体统计' : `📅 ${dayData.day}`;
-                container.appendChild(dayHeader);
+        const btn = $('fbModalSubmit');
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;vertical-align:middle"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> 投递中…';
 
-                const table = document.createElement('table');
-                table.className = 'stats-table';
+        const fd = new FormData();
+        if (nickname) fd.append('nickname', nickname);
+        fd.append('message', message);
+        if (description) fd.append('description', description);
+        if (file) fd.append('attachment', file);
 
-                // 表头
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-
-                const headers = Object.keys(dayData.stats[0]);
-                headers.forEach(header => {
-                    const th = document.createElement('th');
-                    th.textContent = header;
-                    headerRow.appendChild(th);
-                });
-
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-
-                // 表体
-                const tbody = document.createElement('tbody');
-                dayData.stats.forEach(stat => {
-                    const row = document.createElement('tr');
-                    headers.forEach(header => {
-                        const td = document.createElement('td');
-                        td.textContent = stat[header];
-                        row.appendChild(td);
-                    });
-                    tbody.appendChild(row);
-                });
-
-                table.appendChild(tbody);
-                container.appendChild(table);
-
-                statsContent.appendChild(container);
-            });
+        try {
+            const res = await fetch('/api/feedback', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            if (nickname) localStorage.setItem(FB_NICK_KEY, nickname);
+            toast('反馈已投递，谢谢～', 'success');
+            $('fbMessage').value = '';
+            $('fbDescription').value = '';
+            $('fbAttachment').value = '';
+            // 刷新列表
+            await loadFeedbackList();
+            // 自动展开列表，让用户看到自己的留言
+            $('feedbackListWrap').open = true;
+        } catch (err) {
+            toast(err.message || '投递失败');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = orig;
         }
+    });
 
-        // 下载按钮
-        downloadBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch(`/api/download/${downloadId}/${excelFilename}`);
-
-                if (!response.ok) {
-                    throw new Error('下载失败');
-                }
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = excelFilename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } catch (error) {
-                showError('下载文件时出错');
-            }
-        });
-
-        // 重置按钮
-        resetBtn.addEventListener('click', async () => {
-            // 清理服务器上的文件
-            if (downloadId && excelFilename) {
-                try {
-                    await fetch(`/api/cleanup/${downloadId}/${excelFilename}`, {
-                        method: 'POST'
-                    });
-                } catch (error) {
-                    console.error('清理文件失败', error);
-                }
-            }
-
-            // 重置界面
-            uploadSection.style.display = 'block';
-            resultsSection.style.display = 'none';
-            fileInput.value = '';
-            downloadId = '';
-            excelFilename = '';
-            hideError();
-        });
-
-        // 错误处理
-        function showError(message) {
-            errorMessage.textContent = '❌ ' + message;
-            errorMessage.style.display = 'block';
-        }
-
-        function hideError() {
-            errorMessage.style.display = 'none';
-        }
     </script>
 </body>
 </html>

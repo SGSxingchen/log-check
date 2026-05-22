@@ -3,13 +3,38 @@ import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from .format_detector import detect_format
-from utils import count_char_weight, normalize_speaker_name
+try:
+    from ..utils import count_char_weight, normalize_speaker_name
+except ImportError:
+    from utils import count_char_weight, normalize_speaker_name
 
 # 分天配置
 TIME_GAP_THRESHOLD_HOURS = 6  # 超过6小时无发言视为分天
 
 # 参与时长配置
 IDLE_THRESHOLD_MINUTES = 15  # 超过15分钟无发言视为休息/摸鱼,不计入参与时长
+
+# CQ 码 / OneBot 占位符过滤
+# 形如 [CQ:image,file=...] [CQ:reply,id=...] [CQ:at,qq=...] [CQ:face,id=...] 等
+CQ_CODE_PATTERN = re.compile(r'\[CQ:[^\]]*\]')
+
+
+def strip_cq_codes(text):
+    """移除文本中的 [CQ:xxx,...] OneBot 协议占位符"""
+    if not text:
+        return text
+    return CQ_CODE_PATTERN.sub('', text)
+
+
+def finalize_message_content(message_lines):
+    """把累计的消息行拼接、剥离 CQ 码、去首尾空白。
+
+    Returns:
+        str: 最终内容（可能为空字符串）
+    """
+    if not message_lines:
+        return ''
+    return strip_cq_codes('\n'.join(message_lines)).strip()
 
 
 def is_separator_line(line):
@@ -148,6 +173,34 @@ def calculate_participation_time(timestamps, idle_threshold_minutes=IDLE_THRESHO
     return int(participation_minutes)
 
 
+def _record_message(daily_stats, dialogue_contents, current_day, current_speaker,
+                    current_message, current_date, current_timestamp):
+    """统一收尾：拼接 + 过滤 CQ 码 + 计入统计 + 保存对话内容。
+
+    内容过滤后为空时，整条消息被忽略（既不计数也不保存）。
+    """
+    if not current_speaker or not current_message:
+        return
+    content = strip_cq_codes('\n'.join(current_message)).strip()
+    if not content:
+        return
+    is_ooc = bool(re.search(r'[（(]', content))
+    if is_ooc:
+        daily_stats[current_day][current_speaker]['ooc_messages'] += 1
+        daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
+    else:
+        daily_stats[current_day][current_speaker]['messages'] += 1
+        daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
+
+    dialogue_contents[current_speaker].append({
+        'day': current_day,
+        'date': current_date,
+        'content': content,
+        'is_ooc': is_ooc,
+        'timestamp': current_timestamp,
+    })
+
+
 def parse_log_file(file_path="log.txt"):
     """从文件中统计对话信息，支持五种格式，并返回每个角色的具体对话内容
 
@@ -193,23 +246,24 @@ def parse_log_file(file_path="log.txt"):
                     if is_separator_line(line):
                         # 处理当前未处理的消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
-                            if is_ooc:
-                                daily_stats[current_day][current_speaker]['ooc_messages'] += 1
-                                daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
-                            else:
-                                daily_stats[current_day][current_speaker]['messages'] += 1
-                                daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
+                                if is_ooc:
+                                    daily_stats[current_day][current_speaker]['ooc_messages'] += 1
+                                    daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
+                                else:
+                                    daily_stats[current_day][current_speaker]['messages'] += 1
+                                    daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
 
-                            # 保存对话内容
-                            dialogue_contents[current_speaker].append({
-                                'day': current_day,
-                                'date': current_date,
-                                'content': content,
-                                'is_ooc': is_ooc,
-                                'timestamp': current_timestamp
-                            })
+                                # 保存对话内容
+                                dialogue_contents[current_speaker].append({
+                                    'day': current_day,
+                                    'date': current_date,
+                                    'content': content,
+                                    'is_ooc': is_ooc,
+                                    'timestamp': current_timestamp
+                                })
                         current_speaker = None
                         current_message = []
                         current_day += 1
@@ -223,23 +277,24 @@ def parse_log_file(file_path="log.txt"):
                     if current_dt and should_split_day_by_time_gap(prev_datetime, current_dt):
                         # 处理前一条消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
-                            if is_ooc:
-                                daily_stats[current_day][current_speaker]['ooc_messages'] += 1
-                                daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
-                            else:
-                                daily_stats[current_day][current_speaker]['messages'] += 1
-                                daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
+                                if is_ooc:
+                                    daily_stats[current_day][current_speaker]['ooc_messages'] += 1
+                                    daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
+                                else:
+                                    daily_stats[current_day][current_speaker]['messages'] += 1
+                                    daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
 
-                            # 保存对话内容
-                            dialogue_contents[current_speaker].append({
-                                'day': current_day,
-                                'date': current_date,
-                                'content': content,
-                                'is_ooc': is_ooc,
-                                'timestamp': current_timestamp
-                            })
+                                # 保存对话内容
+                                dialogue_contents[current_speaker].append({
+                                    'day': current_day,
+                                    'date': current_date,
+                                    'content': content,
+                                    'is_ooc': is_ooc,
+                                    'timestamp': current_timestamp
+                                })
                         # 切换到新的一天
                         current_day += 1
                         current_speaker = None
@@ -259,23 +314,24 @@ def parse_log_file(file_path="log.txt"):
                     if speaker_match:
                         # 处理前一条消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
-                            if is_ooc:
-                                daily_stats[current_day][current_speaker]['ooc_messages'] += 1
-                                daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
-                            else:
-                                daily_stats[current_day][current_speaker]['messages'] += 1
-                                daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
+                                if is_ooc:
+                                    daily_stats[current_day][current_speaker]['ooc_messages'] += 1
+                                    daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
+                                else:
+                                    daily_stats[current_day][current_speaker]['messages'] += 1
+                                    daily_stats[current_day][current_speaker]['chars'] += count_char_weight(content)
 
-                            # 保存对话内容
-                            dialogue_contents[current_speaker].append({
-                                'day': current_day,
-                                'date': current_date,
-                                'content': content,
-                                'is_ooc': is_ooc,
-                                'timestamp': current_timestamp
-                            })
+                                # 保存对话内容
+                                dialogue_contents[current_speaker].append({
+                                    'day': current_day,
+                                    'date': current_date,
+                                    'content': content,
+                                    'is_ooc': is_ooc,
+                                    'timestamp': current_timestamp
+                                })
 
                         current_speaker = normalize_speaker_name(speaker_match.group(1))
                         current_timestamp = line
@@ -290,8 +346,9 @@ def parse_log_file(file_path="log.txt"):
                     if is_separator_line(line):
                         # 处理当前未处理的消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -324,7 +381,7 @@ def parse_log_file(file_path="log.txt"):
                                 if should_split_day_by_time_gap_format34(prev_timestamp, current_time):
                                     # 处理前一条消息
                                     if current_speaker and current_message:
-                                        content = '\n'.join(current_message)
+                                        content = strip_cq_codes('\n'.join(current_message)).strip()
                                         is_ooc = bool(re.search(r'[（(]', content))
                                         if is_ooc:
                                             daily_stats[current_day][current_speaker]['ooc_messages'] += 1
@@ -348,7 +405,7 @@ def parse_log_file(file_path="log.txt"):
 
                             # 处理前一条消息（如果不是跨天情况）
                             if current_speaker and current_message:
-                                content = '\n'.join(current_message)
+                                content = strip_cq_codes('\n'.join(current_message)).strip()
                                 is_ooc = bool(re.search(r'[（(]', content))
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
@@ -383,7 +440,7 @@ def parse_log_file(file_path="log.txt"):
                                 if should_split_day_by_time_gap_format34(prev_timestamp, current_time):
                                     # 处理前一条消息
                                     if current_speaker and current_message:
-                                        content = '\n'.join(current_message)
+                                        content = strip_cq_codes('\n'.join(current_message)).strip()
                                         is_ooc = bool(re.search(r'[（(]', content))
                                         if is_ooc:
                                             daily_stats[current_day][current_speaker]['ooc_messages'] += 1
@@ -407,7 +464,7 @@ def parse_log_file(file_path="log.txt"):
 
                             # 处理前一条消息（如果不是跨天情况）
                             if current_speaker and current_message:
-                                content = '\n'.join(current_message)
+                                content = strip_cq_codes('\n'.join(current_message)).strip()
                                 is_ooc = bool(re.search(r'[（(]', content))
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
@@ -441,8 +498,9 @@ def parse_log_file(file_path="log.txt"):
                     if is_separator_line(line):
                         # 处理当前未处理的消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -471,8 +529,9 @@ def parse_log_file(file_path="log.txt"):
                     if current_dt and should_split_day_by_time_gap_format5(prev_datetime, current_dt):
                         # 处理前一条消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -502,8 +561,9 @@ def parse_log_file(file_path="log.txt"):
                     if speaker_match:
                         # 处理前一条消息
                         if current_speaker and current_message:
-                            content = '\n'.join(current_message)
-                            is_ooc = bool(re.search(r'[（(]', content))
+                            content = strip_cq_codes('\n'.join(current_message)).strip()
+                            if content:
+                                is_ooc = bool(re.search(r'[（(]', content))
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -533,7 +593,7 @@ def parse_log_file(file_path="log.txt"):
 
     # 处理最后一条消息
     if current_speaker and current_message:
-        content = '\n'.join(current_message)
+        content = strip_cq_codes('\n'.join(current_message)).strip()
         is_ooc = bool(re.search(r'[（(]', content))
 
         if is_ooc:

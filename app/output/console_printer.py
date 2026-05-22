@@ -1,6 +1,9 @@
 """终端控制台输出模块"""
 from collections import defaultdict
-from utils import get_display_width, pad_string
+try:
+    from ..utils import get_display_width, pad_string
+except ImportError:
+    from utils import get_display_width, pad_string
 
 
 def print_summary_stats(daily_stats):
