@@ -1,0 +1,26 @@
+[Unit]
+Description=Log Check Web Service - 角色对话统计工具
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/log_check
+ExecStart=/usr/bin/python3 /root/log_check/web/app.py
+Restart=always
+RestartSec=10
+
+# 环境变量（可选）
+Environment="FLASK_ENV=production"
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=log-check-web
+
+# 安全设置（可选）
+# PrivateTmp=yes
+# NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,32 @@
+# runtime data
+logs/
+web/uploads/
+web/generated/
+web.log
+*.log
+
+# bundled/runtime binaries and archives
+python/
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+
+# Python cache/venv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# secrets/env
+.env
+.env.*
+*.pem
+*.key
