@@ -29,18 +29,22 @@ def normalize_speaker_name(name):
 
     # 去除 BOM 字符
     name = name.replace('\ufeff', '')
+    original = name.strip()
 
     # 以第一个空格为截断点
     space_index = name.find(' ')
     if space_index != -1:
         name = name[:space_index]
-
     # 去除尾部的英文字母和数字（处理如"千夏hp"的情况）
     # 从后往前找，去除连续的英文字母和数字
     name = re.sub(r'[a-zA-Z0-9]+$', '', name)
 
     # 去除尾部空格
     name = name.rstrip()
+
+    # 归一化后为空（典型：纯英文名 "Azure Cruiser" 被剥成空），回退使用原名
+    if not name:
+        return original
 
     return name
 
