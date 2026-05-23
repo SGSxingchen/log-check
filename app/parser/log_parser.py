@@ -18,12 +18,24 @@ IDLE_THRESHOLD_MINUTES = 15  # 超过15分钟无发言视为休息/摸鱼,不计
 # 形如 [CQ:image,file=...] [CQ:reply,id=...] [CQ:at,qq=...] [CQ:face,id=...] 等
 CQ_CODE_PATTERN = re.compile(r'\[CQ:[^\]]*\]')
 
+# NapCat/Lagrange/某些骰娘风格的中文标签型占位符：
+# [图:https://...] [图片:...] [视频:...] [语音:...] [文件:...] [表情:...] [动画表情:...]
+# [回复] [转发] [合并转发] [@xxx] [分享] [位置] [音乐] [红包]
+# 标签后跟可选的内容（直到匹配的 ]）；不允许嵌套，避免吞过头
+MEDIA_TAG_PATTERN = re.compile(
+    r'\[(?:图|图片|视频|语音|音频|文件|表情|动画表情|大表情|戳一戳|窗口抖动|'
+    r'回复|转发|合并转发|@[^\]]*?|分享|位置|音乐|红包|链接|小程序|卡片消息|JSON)'
+    r'(?::[^\]]*)?\]'
+)
+
 
 def strip_cq_codes(text):
-    """移除文本中的 [CQ:xxx,...] OneBot 协议占位符"""
+    """移除文本中的 OneBot 协议占位符与中文标签型占位符（图/视频/回复 等）。"""
     if not text:
         return text
-    return CQ_CODE_PATTERN.sub('', text)
+    text = CQ_CODE_PATTERN.sub('', text)
+    text = MEDIA_TAG_PATTERN.sub('', text)
+    return text
 
 
 def finalize_message_content(message_lines):
