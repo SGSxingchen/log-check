@@ -392,7 +392,8 @@ def parse_log_file(file_path="log.txt"):
 
                     if format_type == "format3":
                         # 处理格式3：时间 <用户名>消息内容
-                        match = re.match(r'(\d{2}:\d{2}:\d{2}) <([^>]+)>(.*)', line)
+                        # 兼容部分骰娘导出的 `21:24:46 <名字>: 内容` 变体（吞掉紧跟 > 后的可选冒号+空格）
+                        match = re.match(r'(\d{2}:\d{2}:\d{2}) <([^>]+)>\s*:?\s*(.*)', line)
                         if match:
                             current_time = match.group(1)
 
