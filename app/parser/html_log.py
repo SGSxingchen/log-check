@@ -20,10 +20,24 @@ HTML_LOG_MARKERS = (
     'logrender.dice.center',
 )
 
+# 形如 00:01:17<某某>: 的 Word 内联导出格式
+WORD_INLINE_PATTERN = re.compile(r'(\d{2}:\d{2}:\d{2})<([^>\n]{1,80})>:', re.S)
+
+# img alt/title 中常见的"实质上是文件名/URL"的占位符（应丢弃，不当作内容）
+_IMG_ALT_NOISE = re.compile(
+    r'^(?:[\w./\\:?&=%~+\-\s{}\[\]\(\)#@!,]+\.(?:png|jpg|jpeg|gif|webp|bmp))$',
+    re.IGNORECASE,
+)
+
 
 def is_html_log(text_head):
     """根据文本内容判断是否为海豹骰 HTML log。"""
     return any(m in text_head for m in HTML_LOG_MARKERS)
+
+
+def is_word_inline_log(text):
+    """检测 Word 内联导出格式（HH:MM:SS<名字>:内容 全部堆在一段里）。"""
+    return len(WORD_INLINE_PATTERN.findall(text)) >= 3
 
 
 def _class_tokens(attrs):
@@ -81,7 +95,7 @@ class LogRenderHTMLParser(HTMLParser):
                 self.current['content'].append('\n')
             elif parent_capture == 'content' and tag == 'img':
                 alt = attrs_dict.get('alt') or attrs_dict.get('title')
-                if alt:
+                if alt and not _IMG_ALT_NOISE.match(alt.strip()):
                     self.current['content'].append(alt)
             return
 
@@ -150,6 +164,61 @@ def html_to_format1(html_text):
     for name, time_str, content in parser.entries:
         out_lines.append(f"{name}(0) {time_str}")
         out_lines.append(content)
+    return '\n'.join(out_lines)
+
+
+def _strip_html(html_text):
+    """剥掉 <style>/<script>/注释/标签，把 <br> 和段落转成换行；保留 img 的 alt（噪声除外）。"""
+    text = re.sub(r'<!--.*?-->', '', html_text, flags=re.S)
+    text = re.sub(r'<(style|script)[^>]*>.*?</\1>', '', text, flags=re.S | re.I)
+    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.I)
+    text = re.sub(r'</p\s*>', '\n', text, flags=re.I)
+
+    def _img_repl(m):
+        attrs = m.group(0)
+        alt_match = re.search(r'\b(?:alt|title)\s*=\s*["\']([^"\']*)["\']', attrs, re.I)
+        if not alt_match:
+            return ''
+        alt = alt_match.group(1).strip()
+        if not alt or _IMG_ALT_NOISE.match(alt):
+            return ''
+        return alt
+
+    text = re.sub(r'<img[^>]*>', _img_repl, text, flags=re.I)
+    text = re.sub(r'<[^>]+>', '', text)
+    return unescape(text)
+
+
+def word_inline_to_format4(text):
+    """把 Word 内联格式（HH:MM:SS<名字>:内容HH:MM:SS<名字>:内容...）切成 format4。
+
+    输出每条占独立两行：
+        HH:MM:SS<名字>:第一行
+        续行...
+    """
+    matches = list(WORD_INLINE_PATTERN.finditer(text))
+    if not matches:
+        return ''
+
+    out_lines = []
+    for i, m in enumerate(matches):
+        time_str = m.group(1)
+        speaker = m.group(2).strip()
+        if not speaker:
+            continue
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        content = text[start:end].strip()
+        if not content:
+            continue
+        # 折行规整：保留段落但避免空白堆积
+        content_lines = [ln.rstrip() for ln in content.splitlines() if ln.strip()]
+        if not content_lines:
+            continue
+        first = content_lines[0]
+        out_lines.append(f"{time_str}<{speaker}>:{first}")
+        for ln in content_lines[1:]:
+            out_lines.append(ln)
     return '\n'.join(out_lines)
 
 
@@ -298,6 +367,19 @@ def preprocess_log_file(file_path):
         if converted.strip():
             return _write_converted(file_path, converted)
         return file_path, False
+
+    # Word 内联格式（如溯回骰）：HTML 标签里整段堆着 HH:MM:SS<名字>:...
+    if '<' in full and '>' in full:
+        stripped = _strip_html(full)
+        if is_word_inline_log(stripped):
+            converted = word_inline_to_format4(stripped)
+            if converted.strip():
+                return _write_converted(file_path, converted)
+    elif is_word_inline_log(full):
+        # 已经是纯文本但凑巧符合内联格式
+        converted = word_inline_to_format4(full)
+        if converted.strip():
+            return _write_converted(file_path, converted)
 
     if ext == 'doc':
         extracted = _extract_binary_doc_text(data)

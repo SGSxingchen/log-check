@@ -1077,6 +1077,30 @@
         }
         .ai-score .ai-num.s2 { color: var(--accent); }
         .ai-score .ai-num.low { color: var(--warning); }
+        .ai-score .ai-tier {
+            display: inline-block;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--brand);
+            background: color-mix(in srgb, var(--brand) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
+            border-radius: 4px;
+            letter-spacing: 0.02em;
+        }
+        .ai-score.s2 .ai-tier {
+            color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 12%, transparent);
+            border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+        }
+        .ai-score .ai-tier.low {
+            color: var(--warning);
+            background: color-mix(in srgb, var(--warning) 14%, transparent);
+            border-color: color-mix(in srgb, var(--warning) 28%, transparent);
+        }
         .ai-score .ai-bar {
             height: 3px;
             background: var(--surface-3);
@@ -2333,6 +2357,8 @@
         const isKp = data.is_kp;
         const rpLabel = isKp ? '叙事力' : '扮演分';
         const ipLabel = isKp ? '主持力' : '影响分';
+        const rpTier = data.roleplay_tier ? `<div class="ai-tier ${lowRp}">${escapeHtml(data.roleplay_tier)}</div>` : '';
+        const ipTier = data.impact_tier ? `<div class="ai-tier ${lowIp}">${escapeHtml(data.impact_tier)}</div>` : '';
         const sampled = data.sampled
             ? `<div style="font-size:0.7rem;color:var(--text-3);text-align:right;margin-top:6px">${isKp ? 'KP 模式 · ' : ''}采样: ${data.sampled.ic_used}/${data.sampled.ic_total} 在场 · ${data.sampled.ooc_used}/${data.sampled.ooc_total} 场外</div>`
             : '';
@@ -2342,11 +2368,13 @@
                     <div class="ai-score">
                         <div class="ai-label">${rpLabel}</div>
                         <div class="ai-num ${lowRp}">${rp}<span style="font-size:0.6em;color:var(--text-3);font-weight:500"> /100</span></div>
+                        ${rpTier}
                         <div class="ai-bar"><div class="ai-bar-fill" style="width:${rp}%"></div></div>
                     </div>
                     <div class="ai-score s2">
                         <div class="ai-label">${ipLabel}</div>
                         <div class="ai-num s2 ${lowIp}">${ip}<span style="font-size:0.6em;color:var(--text-3);font-weight:500"> /100</span></div>
+                        ${ipTier}
                         <div class="ai-bar"><div class="ai-bar-fill" style="width:${ip}%"></div></div>
                     </div>
                 </div>
