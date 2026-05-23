@@ -37,6 +37,14 @@ def finalize_message_content(message_lines):
     return strip_cq_codes('\n'.join(message_lines)).strip()
 
 
+def is_ooc_message(content):
+    """判定是否为场外发言：内容首个非空白字符为 ( 或 （ 才算场外。"""
+    if not content:
+        return False
+    stripped = content.lstrip()
+    return stripped.startswith('(') or stripped.startswith('（')
+
+
 def is_separator_line(line):
     """检测是否为日志分隔符"""
     separators = [
@@ -184,7 +192,7 @@ def _record_message(daily_stats, dialogue_contents, current_day, current_speaker
     content = strip_cq_codes('\n'.join(current_message)).strip()
     if not content:
         return
-    is_ooc = bool(re.search(r'[（(]', content))
+    is_ooc = is_ooc_message(content)
     if is_ooc:
         daily_stats[current_day][current_speaker]['ooc_messages'] += 1
         daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -248,7 +256,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                     daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -279,7 +287,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                     daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -316,7 +324,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                     daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -348,7 +356,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -382,7 +390,7 @@ def parse_log_file(file_path="log.txt"):
                                     # 处理前一条消息
                                     if current_speaker and current_message:
                                         content = strip_cq_codes('\n'.join(current_message)).strip()
-                                        is_ooc = bool(re.search(r'[（(]', content))
+                                        is_ooc = is_ooc_message(content)
                                         if is_ooc:
                                             daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                             daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -406,7 +414,7 @@ def parse_log_file(file_path="log.txt"):
                             # 处理前一条消息（如果不是跨天情况）
                             if current_speaker and current_message:
                                 content = strip_cq_codes('\n'.join(current_message)).strip()
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                     daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -441,7 +449,7 @@ def parse_log_file(file_path="log.txt"):
                                     # 处理前一条消息
                                     if current_speaker and current_message:
                                         content = strip_cq_codes('\n'.join(current_message)).strip()
-                                        is_ooc = bool(re.search(r'[（(]', content))
+                                        is_ooc = is_ooc_message(content)
                                         if is_ooc:
                                             daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                             daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -465,7 +473,7 @@ def parse_log_file(file_path="log.txt"):
                             # 处理前一条消息（如果不是跨天情况）
                             if current_speaker and current_message:
                                 content = strip_cq_codes('\n'.join(current_message)).strip()
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                                 if is_ooc:
                                     daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                     daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -500,7 +508,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -531,7 +539,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -563,7 +571,7 @@ def parse_log_file(file_path="log.txt"):
                         if current_speaker and current_message:
                             content = strip_cq_codes('\n'.join(current_message)).strip()
                             if content:
-                                is_ooc = bool(re.search(r'[（(]', content))
+                                is_ooc = is_ooc_message(content)
                             if is_ooc:
                                 daily_stats[current_day][current_speaker]['ooc_messages'] += 1
                                 daily_stats[current_day][current_speaker]['ooc_chars'] += count_char_weight(content)
@@ -594,7 +602,7 @@ def parse_log_file(file_path="log.txt"):
     # 处理最后一条消息
     if current_speaker and current_message:
         content = strip_cq_codes('\n'.join(current_message)).strip()
-        is_ooc = bool(re.search(r'[（(]', content))
+        is_ooc = is_ooc_message(content)
 
         if is_ooc:
             daily_stats[current_day][current_speaker]['ooc_messages'] += 1
