@@ -23,6 +23,10 @@ HTML_LOG_MARKERS = (
 # 形如 00:01:17<某某>: 的 Word 内联导出格式
 WORD_INLINE_PATTERN = re.compile(r'(\d{2}:\d{2}:\d{2})<([^>\n]{1,80})>:', re.S)
 
+# 形如 <某某>:内容 的无时间戳格式（某些骰娘网页/Word 导出，整段平铺）
+# 用 (?<!\d) 排除掉刚好跟在数字后的（如时间戳后），让 WORD_INLINE_PATTERN 优先匹配
+NO_TIME_INLINE_PATTERN = re.compile(r'(?<![\d>])<([^>\n]{1,80})>:', re.S)
+
 # img alt/title 中常见的"实质上是文件名/URL"的占位符（应丢弃，不当作内容）
 _IMG_ALT_NOISE = re.compile(
     r'^(?:[\w./\\:?&=%~+\-\s{}\[\]\(\)#@!,]+\.(?:png|jpg|jpeg|gif|webp|bmp))$',
@@ -38,6 +42,16 @@ def is_html_log(text_head):
 def is_word_inline_log(text):
     """检测 Word 内联导出格式（HH:MM:SS<名字>:内容 全部堆在一段里）。"""
     return len(WORD_INLINE_PATTERN.findall(text)) >= 3
+
+
+def is_no_time_inline_log(text):
+    """检测无时间戳内联格式（<名字>:内容 平铺在文档里）。
+
+    必须排除已经匹配 WORD_INLINE_PATTERN 的部分，避免把正常时间戳格式误判。
+    """
+    if is_word_inline_log(text):
+        return False
+    return len(NO_TIME_INLINE_PATTERN.findall(text)) >= 3
 
 
 def _class_tokens(attrs):
@@ -222,6 +236,47 @@ def word_inline_to_format4(text):
     return '\n'.join(out_lines)
 
 
+def no_time_inline_to_format4(text):
+    """把无时间戳的 <名字>:内容 格式切成 format4，按顺序合成递增伪时间戳。
+
+    使用每条 +5 秒的伪时间戳，从 00:00:00 开始递增。这样：
+    - 不会触发跨天逻辑（除非超过 86400 / 5 ≈ 17280 条）
+    - 参与时长会近似 = 总条数 × 5 / 60 分钟，不影响相对比较
+    """
+    matches = list(NO_TIME_INLINE_PATTERN.finditer(text))
+    if not matches:
+        return ''
+
+    out_lines = []
+    seq = 0  # 伪时间秒数累加
+    for i, m in enumerate(matches):
+        speaker = m.group(1).strip()
+        if not speaker:
+            continue
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        content = text[start:end].strip()
+        if not content:
+            continue
+
+        content_lines = [ln.rstrip() for ln in content.splitlines() if ln.strip()]
+        if not content_lines:
+            continue
+
+        # 合成伪时间戳：每条 +5 秒（最大约 4.8 小时容量，对一般跑团够用）
+        h = (seq // 3600) % 24
+        mn = (seq // 60) % 60
+        s = seq % 60
+        time_str = f"{h:02d}:{mn:02d}:{s:02d}"
+        seq += 5
+
+        first = content_lines[0]
+        out_lines.append(f"{time_str}<{speaker}>:{first}")
+        for ln in content_lines[1:]:
+            out_lines.append(ln)
+    return '\n'.join(out_lines)
+
+
 def is_docx_file(file_path):
     """检查文件是否为 .docx (zip + word/document.xml)。"""
     try:
@@ -375,9 +430,18 @@ def preprocess_log_file(file_path):
             converted = word_inline_to_format4(stripped)
             if converted.strip():
                 return _write_converted(file_path, converted)
+        # 无时间戳的 <名字>:内容 平铺格式（部分网页骰子/Word 导出）
+        if is_no_time_inline_log(stripped):
+            converted = no_time_inline_to_format4(stripped)
+            if converted.strip():
+                return _write_converted(file_path, converted)
     elif is_word_inline_log(full):
         # 已经是纯文本但凑巧符合内联格式
         converted = word_inline_to_format4(full)
+        if converted.strip():
+            return _write_converted(file_path, converted)
+    elif is_no_time_inline_log(full):
+        converted = no_time_inline_to_format4(full)
         if converted.strip():
             return _write_converted(file_path, converted)
 
