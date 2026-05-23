@@ -1101,6 +1101,17 @@
             background: color-mix(in srgb, var(--warning) 14%, transparent);
             border-color: color-mix(in srgb, var(--warning) 28%, transparent);
         }
+        .ai-tier-rank {
+            display: inline-block;
+            margin-left: 6px;
+            padding-left: 6px;
+            border-left: 1px solid currentColor;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem;
+            font-weight: 700;
+            opacity: 0.78;
+            letter-spacing: 0.04em;
+        }
         .ai-score .ai-bar {
             height: 3px;
             background: var(--surface-3);
@@ -2357,8 +2368,12 @@
         const isKp = data.is_kp;
         const rpLabel = isKp ? '叙事力' : '扮演分';
         const ipLabel = isKp ? '主持力' : '影响分';
-        const rpTier = data.roleplay_tier ? `<div class="ai-tier ${lowRp}">${escapeHtml(data.roleplay_tier)}</div>` : '';
-        const ipTier = data.impact_tier ? `<div class="ai-tier ${lowIp}">${escapeHtml(data.impact_tier)}</div>` : '';
+        const rpTierIdx = data.roleplay_tier_index;
+        const ipTierIdx = data.impact_tier_index;
+        const tierTotal = data.tier_total || 10;
+        const tierSuffix = (idx) => idx ? `<span class="ai-tier-rank">T${idx}/${tierTotal}</span>` : '';
+        const rpTier = data.roleplay_tier ? `<div class="ai-tier ${lowRp}">${escapeHtml(data.roleplay_tier)}${tierSuffix(rpTierIdx)}</div>` : '';
+        const ipTier = data.impact_tier ? `<div class="ai-tier ${lowIp}">${escapeHtml(data.impact_tier)}${tierSuffix(ipTierIdx)}</div>` : '';
         const sampled = data.sampled
             ? `<div style="font-size:0.7rem;color:var(--text-3);text-align:right;margin-top:6px">${isKp ? 'KP 模式 · ' : ''}采样: ${data.sampled.ic_used}/${data.sampled.ic_total} 在场 · ${data.sampled.ooc_used}/${data.sampled.ooc_total} 场外</div>`
             : '';
