@@ -562,10 +562,20 @@ _KP_IMPACT_TIERS = [
 
 
 def _score_to_tier(score, tiers):
+    """根据分数返回档位标签。"""
     for threshold, label in tiers:
         if score >= threshold:
             return label
     return tiers[-1][1]
+
+
+def _score_to_tier_index(score, tiers):
+    """根据分数返回档位序号，10 为最高档（95+），1 为最低档（0-14）。"""
+    total = len(tiers)
+    for idx, (threshold, _) in enumerate(tiers):
+        if score >= threshold:
+            return total - idx
+    return 1
 
 
 @app.route('/api/ai_review', methods=['POST'])
@@ -923,11 +933,16 @@ PL 的影响分 = 对剧情、团队、其他角色的实际改变力
         if not comment:
             return jsonify({'error': '点评字段为空', 'raw': parsed}), 502
 
+        rp_tier_pool = _KP_ROLEPLAY_TIERS if is_kp else _PL_ROLEPLAY_TIERS
+        ip_tier_pool = _KP_IMPACT_TIERS if is_kp else _PL_IMPACT_TIERS
         return jsonify({
             'roleplay_score': rp,
             'impact_score': ip,
-            'roleplay_tier': _score_to_tier(rp, _KP_ROLEPLAY_TIERS if is_kp else _PL_ROLEPLAY_TIERS),
-            'impact_tier': _score_to_tier(ip, _KP_IMPACT_TIERS if is_kp else _PL_IMPACT_TIERS),
+            'roleplay_tier': _score_to_tier(rp, rp_tier_pool),
+            'impact_tier': _score_to_tier(ip, ip_tier_pool),
+            'roleplay_tier_index': _score_to_tier_index(rp, rp_tier_pool),
+            'impact_tier_index': _score_to_tier_index(ip, ip_tier_pool),
+            'tier_total': len(rp_tier_pool),
             'comment': comment,
             'speaker': speaker,
             'is_kp': is_kp,
