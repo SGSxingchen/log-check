@@ -34,7 +34,7 @@ def generate_csv(daily_stats, dialogue_contents, output_file="对话统计.csv")
             # 写入总体统计数据
             writer.writerow(['总体统计'])
             if has_participation_time:
-                writer.writerow(['角色名', '总发言数', '总字数', '平均字数', '场外次数', '场外字数', '参与时长'])
+                writer.writerow(['角色名', '总发言数', '总字数', '平均字数', '场外次数', '场外字数', '参与时长', '每分钟字数'])
             else:
                 writer.writerow(['角色名', '总发言数', '总字数', '平均字数', '场外次数', '场外字数'])
 
@@ -56,6 +56,8 @@ def generate_csv(daily_stats, dialogue_contents, output_file="对话统计.csv")
                     minutes = stats['participation_minutes'] % 60
                     time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
                     row.append(time_str)
+                    cpm = stats['chars'] / stats['participation_minutes'] if stats['participation_minutes'] > 0 else 0
+                    row.append(f"{cpm:.1f}" if stats['participation_minutes'] > 0 else '-')
                 writer.writerow(row)
             
             # 添加空行
@@ -65,7 +67,7 @@ def generate_csv(daily_stats, dialogue_contents, output_file="对话统计.csv")
             for day, day_stats in sorted(daily_stats.items()):
                 writer.writerow([f'第{day}天统计'])
                 if has_participation_time:
-                    writer.writerow(['角色名', '发言数', '字数', '平均字数', '场外次数', '场外字数', '参与时长'])
+                    writer.writerow(['角色名', '发言数', '字数', '平均字数', '场外次数', '场外字数', '参与时长', '每分钟字数'])
                 else:
                     writer.writerow(['角色名', '发言数', '字数', '平均字数', '场外次数', '场外字数'])
 
@@ -88,6 +90,9 @@ def generate_csv(daily_stats, dialogue_contents, output_file="对话统计.csv")
                         minutes = stats.get('participation_minutes', 0) % 60
                         time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
                         row.append(time_str)
+                        pm = stats.get('participation_minutes', 0)
+                        cpm = stats['chars'] / pm if pm > 0 else 0
+                        row.append(f"{cpm:.1f}" if pm > 0 else '-')
                     writer.writerow(row)
 
                     # 累计当日总数
@@ -112,6 +117,9 @@ def generate_csv(daily_stats, dialogue_contents, output_file="对话统计.csv")
                     minutes = daily_total['participation_minutes'] % 60
                     time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
                     row_total.append(time_str)
+                    pm_total = daily_total['participation_minutes']
+                    cpm_total = daily_total['chars'] / pm_total if pm_total > 0 else 0
+                    row_total.append(f"{cpm_total:.1f}" if pm_total > 0 else '-')
                 writer.writerow(row_total)
 
                 # 添加空行

@@ -101,9 +101,8 @@ run_web.ps1                    # Web启动脚本
 **特殊处理**：
 - format5 自动过滤 `[mirai:` 开头的系统消息
 
-### 字数计算权重（utils/text_utils.py）
-- 汉字: 权重 4
-- 其他字符: 权重 1
+### 字数计算（utils/text_utils.py）
+- 按字符数计算，每个字符（含汉字）计 1，等价于 `len(text)`
 
 ### 场外发言识别
 检测括号 `（` 或 `(` 识别 OOC (Out of Character) 场外发言。
@@ -229,7 +228,7 @@ IDLE_THRESHOLD_MINUTES = 10  # 超过10分钟无发言视为休息/摸鱼
 - 终端表格输出，正确处理中文显示宽度（汉字占2，其他占1）
 
 **utils/text_utils.py**
-- `count_char_weight()`: 汉字权重4，其他1
+- `count_char_weight()`: 按字符计数，每字符计1（含汉字）
 - `get_display_width()`, `pad_string()`: 中文对齐
 
 ## 使用说明

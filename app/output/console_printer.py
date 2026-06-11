@@ -34,11 +34,11 @@ def print_summary_stats(daily_stats):
 
     if has_participation_time:
         # 包含参与时长列
-        print("=" * 100)
+        print("=" * 110)
         print("角色对话统计")
-        print("=" * 100)
-        print(pad_string('角色名', name_width) + ' '.join(pad_string(col, num_width, 'right') for col in ['总发言数', '总字数', '平均字数', '场外次数', '场外字数', '参与时长']))
-        print("-" * 100)
+        print("=" * 110)
+        print(pad_string('角色名', name_width) + ' '.join(pad_string(col, num_width, 'right') for col in ['总发言数', '总字数', '平均字数', '场外次数', '场外字数', '参与时长', '每分钟字数']))
+        print("-" * 110)
 
         # 按总发言数排序并打印数据
         for speaker, stats in sorted(total_stats.items(),
@@ -50,14 +50,25 @@ def print_summary_stats(daily_stats):
             minutes = stats['participation_minutes'] % 60
             time_str = f"{hours}h{minutes}m" if hours > 0 else f"{minutes}m"
 
+            pm = stats['participation_minutes']
+            if pm > 0:
+                cpm = stats['chars'] / pm
+                cpm_cell = pad_string(f"{cpm:.1f}", num_width, 'right')
+                # 每分钟低于5字标红
+                if cpm < 5:
+                    cpm_cell = f"\033[31m{cpm_cell}\033[0m"
+            else:
+                cpm_cell = pad_string("-", num_width, 'right')
+
             print(pad_string(speaker, name_width) +
                   pad_string(str(stats['messages']), num_width, 'right') +
                   pad_string(str(stats['chars']), num_width, 'right') +
                   pad_string(f"{avg_chars:.1f}", num_width, 'right') +
                   pad_string(str(stats['ooc_messages']), num_width, 'right') +
                   pad_string(str(stats['ooc_chars']), num_width, 'right') +
-                  pad_string(time_str, num_width, 'right'))
-        print("=" * 100)
+                  pad_string(time_str, num_width, 'right') +
+                  cpm_cell)
+        print("=" * 110)
     else:
         # 不包含参与时长列(format3/4)
         print("=" * 80)
