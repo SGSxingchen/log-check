@@ -519,6 +519,11 @@
             color: var(--text-2);
         }
 
+        .tbl td.num.cpm-low {
+            color: #e5484d;
+            font-weight: 600;
+        }
+
         .speaker-cell {
             display: flex;
             align-items: center;
@@ -1699,6 +1704,11 @@
         const name = s['角色名'];
         return `<tr>${headers.map((h, i) => {
             if (i === 0) return `<td><div class="speaker-cell"><span class="avatar" style="background:${colorFor(name)}">${escapeHtml(name.slice(0,1))}</span><span>${escapeHtml(name)}</span></div></td>`;
+            if (h === '每分钟字数') {
+                const cpm = Number(s[h]);
+                const low = (s[h] !== undefined && s[h] !== '-' && cpm < 5) ? ' cpm-low' : '';
+                return `<td class="num${low}">${escapeHtml(String(s[h]))}</td>`;
+            }
             return `<td class="num">${escapeHtml(String(s[h]))}</td>`;
         }).join('')}<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td></tr>`;
     }

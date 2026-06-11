@@ -50,7 +50,7 @@ def normalize_speaker_name(name):
 
 
 def count_char_weight(text):
-    """计算文本的加权字数，汉字计4，其他字符计1"""
+    """计算文本字数，按字符数计算（每个字符计1，含汉字）"""
     weight = 0
     for char in text:
         if '\u4e00' <= char <= '\u9fff':  # 判断是否为汉字

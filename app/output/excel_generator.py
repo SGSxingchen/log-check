@@ -28,6 +28,7 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
     )
     
     ooc_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+    low_cpm_font = Font(color="CC0000", bold=True)  # 每分钟字数偏低标红
     
     # 创建总体统计工作表
     ws_summary = wb.create_sheet(title="统计")
@@ -52,9 +53,9 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
                 has_participation_time = True
 
     # 根据是否有参与时长设置列宽和表头
-    num_cols = 7 if has_participation_time else 6
+    num_cols = 8 if has_participation_time else 6
     ws_summary.column_dimensions['A'].width = 30
-    for col_letter in ['B', 'C', 'D', 'E', 'F', 'G']:
+    for col_letter in ['B', 'C', 'D', 'E', 'F', 'G', 'H']:
         ws_summary.column_dimensions[col_letter].width = 12
 
     # 添加标题
@@ -67,6 +68,7 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
     total_headers = ["角色名", "总发言数", "总字数", "平均字数", "场外次数", "场外字数"]
     if has_participation_time:
         total_headers.append("参与时长")
+        total_headers.append("每分钟字数")
 
     for col, header in enumerate(total_headers, 1):
         cell = ws_summary.cell(row=3, column=col)
@@ -96,7 +98,16 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
             minutes = stats['participation_minutes'] % 60
             time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
             ws_summary.cell(row=row, column=7).value = time_str
-            col_count = 7
+            pm = stats['participation_minutes']
+            cpm_cell = ws_summary.cell(row=row, column=8)
+            if pm > 0:
+                cpm = stats['chars'] / pm
+                cpm_cell.value = f"{cpm:.1f}"
+                if cpm < 5:
+                    cpm_cell.font = low_cpm_font
+            else:
+                cpm_cell.value = "-"
+            col_count = 8
 
         # 添加边框和居中
         for col in range(1, col_count + 1):
@@ -124,6 +135,7 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
         day_headers = ["角色名", "发言数", "字数", "平均字数", "场外次数", "场外字数"]
         if has_participation_time:
             day_headers.append("参与时长")
+            day_headers.append("每分钟字数")
 
         for col, header in enumerate(day_headers, 1):
             cell = ws_summary.cell(row=row, column=col)
@@ -155,7 +167,16 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
                 minutes = stats.get('participation_minutes', 0) % 60
                 time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
                 ws_summary.cell(row=row, column=7).value = time_str
-                col_count = 7
+                pm = stats.get('participation_minutes', 0)
+                cpm_cell = ws_summary.cell(row=row, column=8)
+                if pm > 0:
+                    cpm = stats['chars'] / pm
+                    cpm_cell.value = f"{cpm:.1f}"
+                    if cpm < 5:
+                        cpm_cell.font = low_cpm_font
+                else:
+                    cpm_cell.value = "-"
+                col_count = 8
 
             # 添加边框和居中
             for col in range(1, col_count + 1):
@@ -190,7 +211,10 @@ def generate_excel(daily_stats, dialogue_contents, file_path="对话统计.xlsx"
             minutes = daily_total['participation_minutes'] % 60
             time_str = f"{hours}小时{minutes}分钟" if hours > 0 else f"{minutes}分钟"
             ws_summary.cell(row=row, column=7).value = time_str
-            col_count_total = 7
+            pm_total = daily_total['participation_minutes']
+            cpm_total = daily_total['chars'] / pm_total if pm_total > 0 else 0
+            ws_summary.cell(row=row, column=8).value = f"{cpm_total:.1f}" if pm_total > 0 else "-"
+            col_count_total = 8
 
         # 添加边框和背景色
         for col in range(1, col_count_total + 1):

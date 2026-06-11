@@ -168,6 +168,8 @@ def build_speaker_stat(name, data, is_total=False):
     if data.get('participation_minutes', 0) > 0:
         stat['参与时长'] = format_time_display(data['participation_minutes'])
         stat['_minutes'] = data['participation_minutes']
+        cpm = data['chars'] / data['participation_minutes']
+        stat['每分钟字数'] = round(cpm, 1)
     return stat
 
 
